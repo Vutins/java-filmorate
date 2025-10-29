@@ -1,16 +1,19 @@
 package ru.yandex.practicum.filmorate.validator;
 
+import lombok.extern.slf4j.Slf4j;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
 
+@Slf4j
 public class FilmValidator {
 
     private final static int  MAX_LENGTH_DESCRIPTION = 200;
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1985, 12, 28);
 
     public static void validate(Film film) {
+        log.info("валидация фильма");
         validateName(film.getName());
         validateDescription(film.getDescription());
         validateRelease(film.getRelease());
