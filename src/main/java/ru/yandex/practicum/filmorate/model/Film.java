@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @AllArgsConstructor
@@ -19,4 +20,5 @@ public class Film {
     private LocalDate release;
     @NotNull
     private Integer duration;
+    private Set<User> likes;
 }
