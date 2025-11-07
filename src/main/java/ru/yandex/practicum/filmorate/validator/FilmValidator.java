@@ -16,7 +16,7 @@ public class FilmValidator {
         log.info("валидация фильма");
         validateName(film.getName());
         validateDescription(film.getDescription());
-        validateRelease(film.getRelease());
+        validateRelease(film.getReleaseDate());
         validateDuration(film.getDuration());
     }
 

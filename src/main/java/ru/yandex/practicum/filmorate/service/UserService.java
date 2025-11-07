@@ -37,7 +37,7 @@ public class UserService {
     }
 
     public User getUser(Integer id) {
-        if (!userStorage.getAllUsers().contains(userStorage.getUser(id))) {
+        if (userStorage.getUser(id) == null) {
             throw new NotFoundException("вызов несуществующего пользователя");
         }
         return userStorage.getUser(id);

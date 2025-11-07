@@ -38,7 +38,7 @@ public class FilmService {
     }
 
     public Film getFilm(Integer id) {
-        if (!filmStorage.getAllFilms().contains(filmStorage.getFilm(id))) {
+        if (filmStorage.getFilm(id) == null) {
             throw new NotFoundException("вызов несуществующего фильма");
         }
         return filmStorage.getFilm(id);

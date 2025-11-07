@@ -1,22 +1,20 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.validator.FilmValidator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 public class InMemoryFilmStorage implements FilmStorage {
 
-    private final HashMap<Integer,Film> filmMap;
+    private final HashMap<Integer,Film> filmMap = new HashMap<>();
     private Integer id = 1;
 
     public Film create(Film film) {
+        film.setId(id);
         filmMap.put(id++, film);
         return film;
     }
@@ -31,7 +29,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     public Film getFilm(Integer id) {
-        if (!filmMap.containsValue(id)) {
+        if (!filmMap.containsKey(id)) {
             return null;
         } else {
             return filmMap.get(id);
@@ -45,6 +43,4 @@ public class InMemoryFilmStorage implements FilmStorage {
     public List<Integer> getAllKeys() {
         return new ArrayList<>(filmMap.keySet());
     }
-
-
 }

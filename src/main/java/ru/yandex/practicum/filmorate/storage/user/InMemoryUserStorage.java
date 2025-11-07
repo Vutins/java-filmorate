@@ -10,13 +10,13 @@ import java.util.HashMap;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 public class InMemoryUserStorage implements UserStorage {
 
-    private final HashMap<Integer, User> userMap;
+    private final HashMap<Integer, User> userMap = new HashMap<>();
     private Integer id = 1;
 
     public User create(User user) {
+        user.setId(id);
         userMap.put(id++, user);
         return user;
     }
@@ -31,7 +31,7 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     public User getUser(Integer id) {
-        if (!userMap.containsValue(id)) {
+        if (!userMap.containsKey(id)) {
             return null;
         } else {
            return userMap.get(id);
