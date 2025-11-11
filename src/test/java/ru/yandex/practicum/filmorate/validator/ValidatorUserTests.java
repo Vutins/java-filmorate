@@ -10,23 +10,23 @@ public class ValidatorUserTests {
 
     @Test
     void shouldNotThrowExceptionForEmail() {
-        User user = new User(1, "nik@.com", "login", "name"
-                , LocalDate.of(2004, 5, 21), new HashSet<>());
+        User user = new User(1, "nik@.com", "login", "name",
+                LocalDate.of(2004, 5, 21), new HashSet<>());
         UserValidator.validate(user);
     }
 
     @Test
     void shouldNotThrowExceptionForNameAndSetName() {
-        User user = new User(1, "nik@.com", "login", ""
-                , LocalDate.of(2004, 5, 21), new HashSet<>());
+        User user = new User(1, "nik@.com", "login", "",
+                LocalDate.of(2004, 5, 21), new HashSet<>());
         UserValidator.validate(user);
         System.out.println("имя пользователя: " + user.getName());
     }
 
     @Test
     void shouldNotExceptionForBirthday() {
-        User user = new User(1, "nik@.com", "login", "name"
-                , LocalDate.now(), new HashSet<>());
+        User user = new User(1, "nik@.com", "login", "name",
+                LocalDate.now(), new HashSet<>());
         UserValidator.validate(user);
     }
 }
