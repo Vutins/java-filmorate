@@ -10,8 +10,8 @@ public class ValidatorFilmTests {
 
     @Test
     void shouldNotThrowExceptionForDescription() {
-        Film film1 = new Film(1, "film1"
-                , "\"Дом Кобб – вор, который крадет секреты из подсознания."
+        Film film1 = new Film(1, "film1",
+                "\"Дом Кобб – вор, который крадет секреты из подсознания."
                 + " Ему предлагают невыполнимую задачу – внедрить идею в сознание человека."
                 + " Если он преуспеет, это станет идеальным преступлением. Но враги повсюду,",
                 LocalDate.now(), 100, new HashSet<>());
