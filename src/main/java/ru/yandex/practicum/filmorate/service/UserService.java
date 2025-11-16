@@ -64,8 +64,8 @@ public class UserService {
         if (userStorage.getUser(id) == null || userStorage.getUser(friendId) == null) {
             throw new NotFoundException("Пользователь не найден");
         }
-        userStorage.getUser(id).getFriends().remove(userStorage.getUser(friendId));
-        userStorage.getUser(friendId).getFriends().remove(userStorage.getUser(id));
+        userStorage.getUser(id).getFriends().remove(friendId);
+        userStorage.getUser(friendId).getFriends().remove(id);
     }
 
     public List<User> getListMutualFriends(Integer user1, Integer user2) {

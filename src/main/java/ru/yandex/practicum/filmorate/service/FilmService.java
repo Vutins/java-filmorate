@@ -55,7 +55,7 @@ public class FilmService {
         if (filmStorage.getFilm(id) == null) {
             throw new NotFoundException("Фильм не найден");
         }
-        if (userStorage.getUser(id) == null) {
+        if (userStorage.getUser(userId) == null) {
             throw new NotFoundException("пользователь не найден");
         }
         if (filmStorage.getFilm(id).getLikes() == null) {
