@@ -49,14 +49,21 @@ public class UserService {
     }
 
     public void putFriend(Integer id, Integer friendId) {
-        User user = userStorage.getUser(id);
-        if (user.getFriends() == null) {
-            user.setFriends(new HashSet<>());
+        if (userStorage.getUser(id).getFriends() == null) {
+            userStorage.getUser(id).setFriends(new HashSet<>());
         }
-        user.getFriends().add(friendId);
+
+        if (userStorage.getUser(friendId).getFriends() == null) {
+            userStorage.getUser(friendId).setFriends(new HashSet<>());
+        }
+        userStorage.getUser(id).getFriends().add(friendId);
+        userStorage.getUser(friendId).getFriends().add(id);
     }
 
     public void deleteFriend(Integer id, Integer friendId) {
+        if (userStorage.getUser(id) == null || userStorage.getUser(friendId) == null) {
+            throw new NotFoundException("Пользователь не найден");
+        }
         userStorage.getUser(id).getFriends().remove(userStorage.getUser(friendId));
         userStorage.getUser(friendId).getFriends().remove(userStorage.getUser(id));
     }
@@ -74,6 +81,9 @@ public class UserService {
     }
 
     public List<User> getAllFriends(Integer id) {
+        if (userStorage.getUser(id) == null) {
+            throw new NotFoundException("пользователь не найден");
+        }
         List<User> allFriends = new ArrayList<>();
         for (Integer idFriend : userStorage.getUser(id).getFriends()) {
             allFriends.add(userStorage.getUser(idFriend));

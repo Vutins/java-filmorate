@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import ru.yandex.practicum.filmorate.validator.FilmValidator;
 
 import java.util.Comparator;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 public class FilmService {
 
     private final FilmStorage filmStorage;
+    private final UserStorage userStorage;
 
     public Film create(Film film) {
         FilmValidator.validate(film);
@@ -50,14 +52,16 @@ public class FilmService {
     }
 
     public void putLike(Integer id, Integer userId) {
-        Film film = filmStorage.getFilm(id);
-        if (film == null) {
+        if (filmStorage.getFilm(id) == null) {
             throw new NotFoundException("Фильм не найден");
         }
-        if (film.getLikes() == null) {
-            film.setLikes(new HashSet<>());
+        if (userStorage.getUser(id) == null) {
+            throw new NotFoundException("пользователь не найден");
         }
-        film.getLikes().add(userId);
+        if (filmStorage.getFilm(id).getLikes() == null) {
+            filmStorage.getFilm(id).setLikes(new HashSet<>());
+        }
+        filmStorage.getFilm(id).getLikes().add(userId);
     }
 
     public void deleteLike(Integer id, Integer userId) {
