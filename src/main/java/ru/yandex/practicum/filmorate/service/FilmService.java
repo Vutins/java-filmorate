@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.validator.FilmValidator;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,11 +50,22 @@ public class FilmService {
     }
 
     public void putLike(Integer id, Integer userId) {
-        filmStorage.getFilm(id).getLikes().add(userId);
+        Film film = filmStorage.getFilm(id);
+        if (film == null) {
+            throw new NotFoundException("Фильм не найден");
+        }
+        if (film.getLikes() == null) {
+            film.setLikes(new HashSet<>());
+        }
+        film.getLikes().add(userId);
     }
 
     public void deleteLike(Integer id, Integer userId) {
-        filmStorage.getFilm(id).getLikes().remove(userId);
+        Film film = filmStorage.getFilm(id);
+        if (film == null || film.getLikes() == null) {
+            throw new NotFoundException("Фильм или лайк не найден");
+        }
+        film.getLikes().remove(userId);
     }
 
     public List<Film> getPopularFilms(Integer count) {

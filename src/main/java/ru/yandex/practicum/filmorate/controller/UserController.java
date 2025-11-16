@@ -49,7 +49,7 @@ public class UserController {
     @PutMapping("/{id}/friends/{friendId}")
     @ResponseStatus(HttpStatus.OK)
     public void putFriend(@PathVariable Integer id, @PathVariable Integer friendId) {
-        userService.putFriend(userService.getUser(id), userService.getUser(friendId));
+        userService.putFriend(userService.getUser(id).getId(), userService.getUser(friendId).getId());
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")

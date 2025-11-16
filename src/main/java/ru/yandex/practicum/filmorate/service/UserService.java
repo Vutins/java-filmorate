@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import ru.yandex.practicum.filmorate.validator.UserValidator;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -47,9 +48,12 @@ public class UserService {
         return userStorage.getAllUsers();
     }
 
-    public void putFriend(User user, User userFriend) {
-        user.getFriends().add(userFriend);
-        userFriend.getFriends().add(user);
+    public void putFriend(Integer id, Integer friendId) {
+        User user = userStorage.getUser(id);
+        if (user.getFriends() == null) {
+            user.setFriends(new HashSet<>());
+        }
+        user.getFriends().add(friendId);
     }
 
     public void deleteFriend(Integer id, Integer friendId) {
@@ -59,10 +63,10 @@ public class UserService {
 
     public List<User> getListMutualFriends(Integer user1, Integer user2) {
     List<User> mutualFriends = new ArrayList<>();
-        for (User userFirst : userStorage.getUser(user1).getFriends()) {
-            for (User userSecond : userStorage.getUser(user2).getFriends()) {
+        for (Integer userFirst : userStorage.getUser(user1).getFriends()) {
+            for (Integer userSecond : userStorage.getUser(user2).getFriends()) {
                 if (userFirst.equals(userSecond)) {
-                    mutualFriends.add(userFirst);
+                    mutualFriends.add(userStorage.getUser(userFirst));
                 }
             }
         }
