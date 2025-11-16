@@ -61,7 +61,7 @@ public class UserController {
     @GetMapping("/{id}/friends")
     @ResponseStatus(HttpStatus.OK)
     public List<User> getFriends(@PathVariable Integer id) {
-        return new ArrayList<>(userService.getUser(id).getFriends());
+        return new ArrayList<>(userService.getAllFriends(id));
     }
 
     @GetMapping("/{id}/friends/common/{otherId}")

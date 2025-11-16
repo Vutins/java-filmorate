@@ -72,4 +72,12 @@ public class UserService {
         }
         return mutualFriends;
     }
+
+    public List<User> getAllFriends(Integer id) {
+        List<User> allFriends = new ArrayList<>();
+        for (Integer idFriend : userStorage.getUser(id).getFriends()) {
+            allFriends.add(userStorage.getUser(idFriend));
+        }
+        return allFriends;
+    }
 }
