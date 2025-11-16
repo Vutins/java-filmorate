@@ -49,15 +49,24 @@ public class UserService {
     }
 
     public void putFriend(Integer id, Integer friendId) {
-        if (userStorage.getUser(id).getFriends() == null) {
-            userStorage.getUser(id).setFriends(new HashSet<>());
+        User user = userStorage.getUser(id);
+        User friend = userStorage.getUser(friendId);
+
+        if (user == null) {
+            throw new NotFoundException("Пользователь с id=" + id + " не найден");
+        }
+        if (friend == null) {
+            throw new NotFoundException("Пользователь с id=" + friendId + " не найден");
         }
 
-        if (userStorage.getUser(friendId).getFriends() == null) {
-            userStorage.getUser(friendId).setFriends(new HashSet<>());
+        if (user.getFriends() == null) {
+            user.setFriends(new HashSet<>());
         }
-        userStorage.getUser(id).getFriends().add(friendId);
-        userStorage.getUser(friendId).getFriends().add(id);
+        if (friend.getFriends() == null) {
+            friend.setFriends(new HashSet<>());
+        }
+        user.getFriends().add(friendId);
+        friend.getFriends().add(id);
     }
 
     public void deleteFriend(Integer id, Integer friendId) {
