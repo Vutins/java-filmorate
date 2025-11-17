@@ -4,10 +4,15 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class Film {
 
     private Integer id;
@@ -16,7 +21,8 @@ public class Film {
     @NotBlank
     private String description;
     @NotNull
-    private LocalDate release;
+    private LocalDate releaseDate;
     @NotNull
     private Integer duration;
+    private Set<Integer> likes = new HashSet<>();
 }
