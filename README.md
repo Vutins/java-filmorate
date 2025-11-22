@@ -63,11 +63,10 @@ LEFT JOIN film_genres fg ON f.film_id = fg.film_id
 LEFT JOIN genres g ON fg.genre_id = g.genre_id
 WHERE f.film_id = 1
 GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, r.name_rating;
-
----
+```
 
 ### 2. Получение списка друзей пользователя
-
+```sql
 SELECT 
     u.user_id, 
     u.user_name, 
@@ -75,11 +74,10 @@ SELECT
 FROM friends f
 JOIN users u ON f.friend_id = u.user_id
 WHERE f.user_id = 1;
-
----
+```
 
 ### 3. Топ популярных фильмов
-
+```sql
 SELECT 
     f.film_id, 
     f.name, 
@@ -89,11 +87,10 @@ LEFT JOIN likes l ON f.film_id = l.film_id
 GROUP BY f.film_id, f.name
 ORDER BY likes_count DESC
 LIMIT 10;
-
----
+```
 
 ### 4. Добавление нового фильма
-
+```sql
 INSERT INTO films (name, description, release_date, duration, mpa_rating)
 VALUES (
     'Новый фильм', 
@@ -102,25 +99,22 @@ VALUES (
     120, 
     3
 );
-
----
+```
 
 ### 5. Добавление лайка к фильму
-
+```sql
 INSERT INTO likes (user_id, film_id)
 VALUES (2, 1);
-
----
+```
 
 ### 6. Добавление друга
-
+```sql
 INSERT INTO friends (user_id, friend_id)
 VALUES (1, 3);
-
----
+```
 
 ### 7. Получение общих друзей двух пользователей
-
+```sql
 SELECT 
     u.user_id, 
     u.user_name
@@ -129,11 +123,10 @@ JOIN friends f2 ON f1.friend_id = f2.friend_id
 JOIN users u ON f1.friend_id = u.user_id
 WHERE f1.user_id = 1 
   AND f2.user_id = 2;
-
----
+```
 
 ### 8. Поиск фильмов по жанру
-
+```sql
 SELECT 
     f.film_id,
     f.name,
@@ -143,11 +136,10 @@ FROM films f
 JOIN film_genres fg ON f.film_id = fg.film_id
 JOIN genres g ON fg.genre_id = g.genre_id
 WHERE g.genre_name = 'Драма';
-
----
+```
 
 ### 9. Получение всех пользователей, лайкнувших фильм
-
+```sql
 SELECT 
     u.user_id,
     u.user_name,
@@ -155,24 +147,22 @@ SELECT
 FROM likes l
 JOIN users u ON l.user_id = u.user_id
 WHERE l.film_id = 1;
-
----
+```
 
 ### 10. Удаление лайка
-
+```sql
 DELETE FROM likes
 WHERE film_id = 1 AND user_id = 2;
-
----
+```
 
 ### 11. Удаление друга
-
+```sql
 DELETE FROM friends
 WHERE user_id = 1 AND friend_id = 3;
-
----
+```
 
 ### 12. Получение рекомендаций фильмов от друзей
+```sql
 SELECT DISTINCT
     f.film_id,
     f.name,
@@ -189,6 +179,7 @@ WHERE fr.user_id = 1
   )
 GROUP BY f.film_id, f.name, f.description
 ORDER BY friends_who_liked DESC;
+```
 
 ###Ссылка на базу данных
 https://dbdiagram.io/d/6921615e228c5bbc1a009d38
