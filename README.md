@@ -1,135 +1,287 @@
-# java-filmorate
-Template repository for Filmorate project.
+# Filmorate - Схема Базы Данных
 
-# Схема базы данных Filmorate (3NF)
+## Описание проекта
 
-## Таблицы базы
-<img width="1560" height="504" alt="Untitled" src="https://github.com/user-attachments/assets/0f02065a-ed68-45d6-b1bc-d3d245fbaf22" />
+**Filmorate** — это база данных для управления информацией о фильмах, пользователях и их взаимодействиях. Система позволяет пользователям просматривать фильмы, добавлять их в избранное через лайки, управлять списком друзей и открывать новые фильмы через рекомендации друзей.
+
+---
+
+## Архитектура Базы Данных
+
+### Нормализация
+
+База данных разработана в соответствии с **3-й нормальной формой (3NF)**, что обеспечивает:
+
+- ✅ Минимизацию избыточности данных
+- ✅ Эффективное хранение информации
+- ✅ Целостность данных через внешние ключи
+- ✅ Упрощение обновления и удаления записей
+
+---
+
+## Описание Таблиц
+
+### 1. **rating** — Справочник рейтингов
+
+Таблица содержит допустимые MPA-рейтинги для фильмов (G, PG, PG-13, R, NC-17 и т.д.).
+
+---
+
+### 2. **genres** — Справочник жанров
+
+Таблица содержит список всех возможных жанров фильмов.
+
+---
+
+### 3. **users** — Информация о пользователях
+
+Основная таблица для хранения профилей пользователей.
+
+---
+
+### 4. **films** — Информация о фильмах
+
+Основная таблица для хранения данных о фильмах.
+
+---
+
+### 5. **friends** — Список друзей пользователей
+
+Таблица хранит информацию о дружеских связях между пользователями.
+
+---
+
+### 6. **likes** — Отметки "нравится" пользователей
+
+Таблица содержит информацию о фильмах, которые понравились пользователям.
+
+---
+
+### 7. **film_genres** — Связь фильмов и жанров
+
+Таблица связи (связь многие-ко-многим) для распределения жанров по фильмам.
+
+---
+
+## Диаграмма ER
 
 
-## Описание структуры базы данных
-
-База данных состоит из следующих основных таблиц:
-
-1. **users** - хранит информацию о пользователях
-2. **friendships** - содержит связи между пользователями с указанием статуса дружбы
-3. **films** - основная информация о фильмах
-4. **ratings** - справочник рейтингов (MPAA)
-5. **genres** - справочник жанров фильмов
-6. **film_genres** - связь фильмов с жанрами (многие-ко-многим)
-7. **likes** - информация о лайках пользователей
-
-База данных соответствует 3-й нормальной форме (3NF), что обеспечивает:
-- Минимизацию избыточности данных
-- Эффективное хранение информации
-- Целостность данных через внешние ключи
+---
 
 ## Примеры SQL-запросов
 
-### 1. Получение информации о фильме с его рейтингом и жанрами
-```sql
-SELECT f.id, f.name, f.description, f.release_date, f.duration, 
-       r.name AS rating, 
-       STRING_AGG(g.name, ', ') AS genres
-FROM films f
-JOIN ratings r ON f.rating_id = r.id
-LEFT JOIN film_genres fg ON f.id = fg.film_id
-LEFT JOIN genres g ON fg.genre_id = g.id
-WHERE f.id = 1
-GROUP BY f.id, r.name;
-```
-### 2. Получение списка друзей пользователя
-```sql
-SELECT 
-    u.id, 
-    u.name, 
-    u.email
-FROM friendships f
-JOIN users u ON f.friend_id = u.id
-WHERE f.user_id = 1 AND f.status_id = 2;
-```
+### 1. Получение информации о фильме с рейтингом и жанрами
 
-3. Топ популярных фильмов
 ```sql
 SELECT 
-    f.id, 
+    f.film_id, 
+    f.name, 
+    f.description, 
+    f.release_date, 
+    f.duration, 
+    r.name_rating AS rating, 
+    STRING_AGG(g.genre_name, ', ') AS genres
+FROM films f
+LEFT JOIN rating r ON f.mpa_rating = r.rating_id
+LEFT JOIN film_genres fg ON f.film_id = fg.film_id
+LEFT JOIN genres g ON fg.genre_id = g.genre_id
+WHERE f.film_id = 1
+GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, r.name_rating;
+
+---
+
+### 2. Получение списка друзей пользователя
+
+SELECT 
+    u.user_id, 
+    u.user_name, 
+    u.email
+FROM friends f
+JOIN users u ON f.friend_id = u.user_id
+WHERE f.user_id = 1;
+
+---
+
+### 3. Топ популярных фильмов
+
+SELECT 
+    f.film_id, 
     f.name, 
     COUNT(l.user_id) AS likes_count
 FROM films f
-LEFT JOIN likes l ON f.id = l.film_id
-GROUP BY f.id
+LEFT JOIN likes l ON f.film_id = l.film_id
+GROUP BY f.film_id, f.name
 ORDER BY likes_count DESC
 LIMIT 10;
-```
+
+---
 
 ### 4. Добавление нового фильма
-```sql
-INSERT INTO films (name, description, release_date, duration, rating_id)
+
+INSERT INTO films (name, description, release_date, duration, mpa_rating)
 VALUES (
     'Новый фильм', 
     'Описание нового фильма', 
-    '2023-01-01', 
+    '2024-01-01', 
     120, 
     3
 );
-```
 
-### 5. Добавление лайка
-```sql
-INSERT INTO likes (film_id, user_id)
-VALUES (1, 2);
-```
+---
 
-### 6. Обновление статуса дружбы
-```sql
-UPDATE friendships
-SET status_id = 2
-WHERE user_id = 1 AND friend_id = 3;
-```
+### 5. Добавление лайка к фильму
 
-### 7. Получение общих друзей
-```sql
+INSERT INTO likes (user_id, film_id)
+VALUES (2, 1);
+
+---
+
+### 6. Добавление друга
+
+INSERT INTO friends (user_id, friend_id)
+VALUES (1, 3);
+
+---
+
+### 7. Получение общих друзей двух пользователей
+
 SELECT 
-    u.id, 
-    u.name
-FROM friendships f1
-JOIN friendships f2 ON f1.friend_id = f2.friend_id
-JOIN users u ON f1.friend_id = u.id
+    u.user_id, 
+    u.user_name
+FROM friends f1
+JOIN friends f2 ON f1.friend_id = f2.friend_id
+JOIN users u ON f1.friend_id = u.user_id
 WHERE f1.user_id = 1 
-  AND f2.user_id = 2 
-  AND f1.status_id = 2 
-  AND f2.status_id = 2;
-```
+  AND f2.user_id = 2;
+
+---
 
 ### 8. Поиск фильмов по жанру
-```sql
-SELECT 
-    f.id,
-    f.name,
-    f.description
-FROM films f
-JOIN film_genres fg ON f.id = fg.film_id
-JOIN genres g ON fg.genre_id = g.id
-WHERE g.name = 'Комедия';
-```
 
-### 9. Получение пользователей, лайкнувших фильм
-```sql
 SELECT 
-    u.id,
-    u.name,
+    f.film_id,
+    f.name,
+    f.description,
+    f.release_date
+FROM films f
+JOIN film_genres fg ON f.film_id = fg.film_id
+JOIN genres g ON fg.genre_id = g.genre_id
+WHERE g.genre_name = 'Драма';
+
+---
+
+### 9. Получение всех пользователей, лайкнувших фильм
+
+SELECT 
+    u.user_id,
+    u.user_name,
     u.email
 FROM likes l
-JOIN users u ON l.user_id = u.id
+JOIN users u ON l.user_id = u.user_id
 WHERE l.film_id = 1;
-```
+
+---
 
 ### 10. Удаление лайка
-```sql
+
 DELETE FROM likes
 WHERE film_id = 1 AND user_id = 2;
-```
 
+---
 
-### Ссылка на базу данных
-https://dbdiagram.io/d/680042921ca52373f54e05ed
+### 11. Удаление друга
+
+DELETE FROM friends
+WHERE user_id = 1 AND friend_id = 3;
+
+---
+
+### 12. Получение рекомендаций фильмов от друзей
+SELECT DISTINCT
+    f.film_id,
+    f.name,
+    f.description,
+    COUNT(l.user_id) AS friends_who_liked
+FROM films f
+JOIN likes l ON f.film_id = l.film_id
+JOIN friends fr ON l.user_id = fr.friend_id
+WHERE fr.user_id = 1
+  AND f.film_id NOT IN (
+      SELECT l2.film_id 
+      FROM likes l2 
+      WHERE l2.user_id = 1
+  )
+GROUP BY f.film_id, f.name, f.description
+ORDER BY friends_who_liked DESC;
+
+---
+
+## Выправления и Рекомендации
+
+### Обнаруженные ошибки в исходной схеме:
+
+1. Таблица `rating`: Необходимо изменить BY DEFAULT AS IDENTITY на GENERATED BY DEFAULT AS IDENTITY
+   
+   -- Неправильно:
+   rating_id INTEGER BY DEFAULT AS IDENTITY PRIMARY KEY
+   
+   -- Правильно:
+   rating_id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY
+   
+
+2. Таблица `film_genres`: Внешний ключ ссылается на film, но должен ссылаться на films
+   
+   -- Неправильно:
+   FOREIGN KEY (film_id) REFERENCES film(film_id)
+   
+   -- Правильно:
+   FOREIGN KEY (film_id) REFERENCES films(film_id)
+   
+
+### Рекомендации по улучшению:
+
+1. Увеличить размеры VARCHAR полей для более гибкого хранения:
+   - films.name: увеличить до VARCHAR(200)
+   - films.description: увеличить до VARCHAR(1000)
+   - users.email: увеличить до VARCHAR(100)
+
+2. Добавить индексы для улучшения производительности:
+   
+   CREATE INDEX idx_films_release_date ON films(release_date);
+   CREATE INDEX idx_likes_user_id ON likes(user_id);
+   CREATE INDEX idx_likes_film_id ON likes(film_id);
+   CREATE INDEX idx_friends_user_id ON friends(user_id);
+   
+
+3. Добавить проверку целостности данных:
+   
+   ALTER TABLE films ADD CONSTRAINT check_duration CHECK (duration > 0);
+   ALTER TABLE users ADD CONSTRAINT check_email_format CHECK (email LIKE '%@%.%');
+   
+
+4. Добавить поля для отслеживания времени:
+   
+   ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+   ALTER TABLE films ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+   
+
+---
+
+## Примечания по использованию
+
+- Дружба: При удалении пользователя все его дружеские связи должны быть удалены
+- Лайки: При удалении фильма или пользователя все связанные лайки удаляются автоматически
+- Жанры: Один фильм может иметь несколько жанров, один жанр может быть у нескольких фильмов
+- Рейтинги: Один фильм может иметь только один MPA-рейтинг
+
+---
+
+## История изменений
+
+| Версия | Дата | Изменения |
+|--------|------|-----------|
+| 1.0 | 2024-11-22 | Начальная версия схемы |
+
+---
+
+Документация подготовлена для проекта Filmorate
