@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,4 +26,5 @@ public class User {
     @PastOrPresent
     private LocalDate birthday;
     private Set<Integer> friends = new HashSet<>();
+    private HashMap<Integer, String> statusFriendship = new HashMap<>();
 }
