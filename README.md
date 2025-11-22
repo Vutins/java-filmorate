@@ -4,7 +4,8 @@ Template repository for Filmorate project.
 # Схема базы данных Filmorate (3NF)
 
 ## Таблицы базы
-![Untitled](https://github.com/user-attachments/assets/b71421e5-55a8-42e3-89b7-add4b030af2c)
+<img width="1560" height="504" alt="Untitled" src="https://github.com/user-attachments/assets/0f02065a-ed68-45d6-b1bc-d3d245fbaf22" />
+
 
 ## Описание структуры базы данных
 
