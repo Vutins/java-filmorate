@@ -7,7 +7,9 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.SequencedSet;
 
-@Value
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Film {
     @Id
     Long id;
