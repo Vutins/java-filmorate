@@ -14,7 +14,6 @@ import java.util.*;
 public class RatingService {
 
     private final RatingStorage mpaRatingStorage;
-
     private final static String PROGRAM_LEVEL = "RatingService";
 
     @Autowired
@@ -27,7 +26,6 @@ public class RatingService {
     }
 
     public Rating getRatingById(Integer id) {
-        //ValidationTool.checkForNull(id, PROGRAM_LEVEL, "Рейтинг не может быть получен по ID = null");
         if (id == null) {
             throw new ValidationException("Рейтинг не может быть получен по ID = null");
         }

@@ -19,9 +19,7 @@ import java.util.*;
 public class FilmService {
 
     private final FilmStorage filmStorage;
-
     private final UserStorage userStorage;
-
     private final static String PROGRAM_LEVEL = "FilmService";
 
     @Autowired
