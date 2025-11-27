@@ -1,34 +1,26 @@
 package ru.yandex.practicum.filmorate.model;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.Value;
+import jakarta.persistence.Id;
+import jakarta.validation.constraints.*;
+import lombok.*;
 
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.SequencedSet;
-import java.util.Set;
 
-@Data
 @Value
-@AllArgsConstructor
 public class Film {
-
+    @Id
     Long id;
     @NotBlank
+    @NotNull
     String name;
-    @NotBlank
+    @Size(max = 200)
     String description;
     @NotNull
+    @PastOrPresent(message = "Дата не может быть в будущем")
     LocalDate releaseDate;
-    @NotNull
-    Integer duration;
-    Set<Integer> likes = new HashSet<>();
-    @NotNull
+    @Positive
+    int duration;
     SequencedSet<Genre> genres;
     Rating mpa;
 }
