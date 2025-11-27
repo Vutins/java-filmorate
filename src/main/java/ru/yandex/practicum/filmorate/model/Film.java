@@ -5,27 +5,30 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Value;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 import java.util.Set;
 
 @Data
+@Value
 @AllArgsConstructor
-@NoArgsConstructor
 public class Film {
 
-    private Integer id;
+    Long id;
     @NotBlank
-    private String name;
+    String name;
     @NotBlank
-    private String description;
+    String description;
     @NotNull
-    private LocalDate releaseDate;
+    LocalDate releaseDate;
     @NotNull
-    private Integer duration;
-    private Set<Integer> likes = new HashSet<>();
+    Integer duration;
+    Set<Integer> likes = new HashSet<>();
     @NotNull
-    private Set<String> genres = new HashSet<>();
-    private String mpa_rating;
+    SequencedSet<Genre> genres;
+    Rating mpa;
 }
