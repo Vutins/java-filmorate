@@ -8,6 +8,8 @@ import java.time.LocalDate;
 import java.util.SequencedSet;
 
 @Value
+@Data
+@AllArgsConstructor
 public class Film {
     @Id
     Long id;
