@@ -12,17 +12,17 @@ import java.util.Set;
 @NoArgsConstructor
 public class Film {
     @Id
-    Long id;
+    private Long id;
     @NotBlank
     @NotNull
-    String name;
+    private String name;
     @Size(max = 200)
-    String description;
+    private String description;
     @NotNull
     @PastOrPresent(message = "Дата не может быть в будущем")
-    LocalDate releaseDate;
+    private LocalDate releaseDate;
     @Positive
-    int duration;
-    Set<Genre> genres;
-    Rating mpa;
+    private int duration;
+    private Set<Genre> genres;
+    private Rating mpa;
 }

@@ -22,7 +22,6 @@ public class FilmService {
     private final UserStorage userStorage;
     private static final String PROGRAM_LEVEL = "FilmService";
 
-    @Autowired
     public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
