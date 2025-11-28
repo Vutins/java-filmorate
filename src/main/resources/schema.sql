@@ -1,3 +1,11 @@
+DROP TABLE IF EXISTS user_friend;
+DROP TABLE IF EXISTS film_like;
+DROP TABLE IF EXISTS film_genre;
+DROP TABLE IF EXISTS films;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS genres;
+DROP TABLE IF EXISTS mpa_rating;
+
 CREATE TABLE IF NOT EXISTS mpa_rating (
   mpa_rating_id INT PRIMARY KEY,
   name VARCHAR(30)

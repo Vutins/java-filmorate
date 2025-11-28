@@ -17,6 +17,8 @@ public class User {
     @NotEmpty
     @NotBlank
     String email;
+    @NotBlank
+    @NotNull
     String login;
     @Past
     LocalDate birthday;
