@@ -25,7 +25,7 @@ public class FilmDbStorage implements FilmStorage {
 
     private final JdbcOperations jdbc;
     private final RowMapper<Film> mapper;
-    private final static String PROGRAM_LEVEL = "FilmDbStorage";
+    private static final String PROGRAM_LEVEL = "FilmDbStorage";
 
     @Autowired
     public FilmDbStorage(final JdbcOperations jdbc, final RowMapper<Film> mapper) {
@@ -300,6 +300,7 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private static class FilmWithRatingAndGenresExtractor implements ResultSetExtractor<Optional<Film>> {
+
         @Override
         public Optional<Film> extractData(ResultSet rs) throws SQLException, DataAccessException {
             Film tmpFilm = null;
@@ -349,6 +350,7 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private static class FilmsIdsWithGenresExtractor implements ResultSetExtractor<Map<Long, Set<Genre>>> {
+
         @Override
         public Map<Long, Set<Genre>> extractData(ResultSet resultSet) throws SQLException, DataAccessException {
             Map<Long, Set<Genre>> data = new HashMap<>();
