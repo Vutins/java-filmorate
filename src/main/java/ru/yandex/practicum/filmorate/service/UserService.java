@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserStorage userStorage;
-    private final static String PROGRAM_LEVEL = "UserService";
+    private static final String PROGRAM_LEVEL = "UserService";
 
     @Autowired
     public UserService(UserStorage userStorage) {
