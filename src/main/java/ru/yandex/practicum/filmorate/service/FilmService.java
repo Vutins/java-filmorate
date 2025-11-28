@@ -20,7 +20,7 @@ public class FilmService {
 
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final String PROGRAM_LEVEL = "FilmService";
+    private static final String PROGRAM_LEVEL = "FilmService";
 
     @Autowired
     public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
