@@ -14,24 +14,24 @@ import java.util.List;
 @RequestMapping("/mpa")
 public class RatingController {
 
-    private final RatingService RatingService;
+    private final RatingService ratingService;
 
     @Autowired
-    public RatingController(RatingService RatingService) {
-        this.RatingService = RatingService;
+    public RatingController(RatingService ratingService) {
+        this.ratingService = ratingService;
     }
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<Rating> getAllRatings() {
         log.info("Запрос на получение списка всех рейтингов");
-        return RatingService.getAllRatings();
+        return ratingService.getAllRatings();
     }
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public Rating getRatingById(@PathVariable Integer id) {
         log.info("Запрос на получение рейтинга по ID");
-        return RatingService.getRatingById(id);
+        return ratingService.getRatingById(id);
     }
 }
