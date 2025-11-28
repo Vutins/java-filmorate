@@ -51,10 +51,14 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User create(User user) {
+        log.info("=== НАЧАЛО СОЗДАНИЯ ПОЛЬЗОВАТЕЛЯ ===");
+        log.info("Получен пользователь: name={}, email={}, login={}, birthday={}",
+                user.getName(), user.getEmail(), user.getLogin(), user.getBirthday());
+
         final String INSERT_USER_QUERY = """
-                INSERT INTO users (name, email, login, birthday)
-                VALUES (?, ?, ?, ?);
-                """;
+            INSERT INTO users (name, email, login, birthday)
+            VALUES (?, ?, ?, ?);
+            """;
 
         final Object[] params = {
                 user.getName(),
@@ -64,26 +68,46 @@ public class UserDbStorage implements UserStorage {
         };
 
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
-        jdbc.update(connection -> {
-            PreparedStatement ps = connection
-                    .prepareStatement(INSERT_USER_QUERY, Statement.RETURN_GENERATED_KEYS);
-            for (int idx = 0; idx < params.length; idx++) {
-                ps.setObject(idx + 1, params[idx]);
-            }
-            return ps;
-        }, keyHolder);
-        Long generatedId = keyHolder.getKeyAs(Long.class);
-        if (generatedId == null) {
-            throw new InternalServerException("UserDbStorage: Не удалось сохранить данные User");
-        }
 
-        return new User(
-                generatedId,
-                user.getName(),
-                user.getEmail(),
-                user.getLogin(),
-                user.getBirthday()
-        );
+        try {
+            log.info("Выполнение SQL: {}", INSERT_USER_QUERY);
+            log.info("Параметры: {}", Arrays.toString(params));
+
+            int affectedRows = jdbc.update(connection -> {
+                PreparedStatement ps = connection
+                        .prepareStatement(INSERT_USER_QUERY, Statement.RETURN_GENERATED_KEYS);
+                for (int idx = 0; idx < params.length; idx++) {
+                    ps.setObject(idx + 1, params[idx]);
+                }
+                return ps;
+            }, keyHolder);
+
+            log.info("Затронуто строк: {}", affectedRows);
+            log.info("KeyHolder keys: {}", keyHolder.getKeys());
+
+            Long generatedId = keyHolder.getKeyAs(Long.class);
+            log.info("Сгенерированный ID: {}", generatedId);
+
+            if (generatedId == null) {
+                log.error("Не удалось получить сгенерированный ID");
+                throw new InternalServerException("UserDbStorage: Не удалось сохранить данные User");
+            }
+
+            User createdUser = new User(
+                    generatedId,
+                    user.getName(),
+                    user.getEmail(),
+                    user.getLogin(),
+                    user.getBirthday()
+            );
+
+            log.info("=== ПОЛЬЗОВАТЕЛЬ УСПЕШНО СОЗДАН: {} ===", createdUser);
+            return createdUser;
+
+        } catch (Exception e) {
+            log.error("Ошибка при создании пользователя: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override

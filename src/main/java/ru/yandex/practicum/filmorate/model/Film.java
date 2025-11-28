@@ -5,7 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.util.SequencedSet;
+import java.util.Set;
 
 @Data
 @AllArgsConstructor
@@ -23,6 +23,6 @@ public class Film {
     LocalDate releaseDate;
     @Positive
     int duration;
-    SequencedSet<Genre> genres;
+    Set<Genre> genres;
     Rating mpa;
 }

@@ -45,7 +45,7 @@ public class FilmService {
     public Film create(Film film) {
         ValidationTool.filmCheck(film, PROGRAM_LEVEL);
 
-        SequencedSet<Genre> validGenresSet = new LinkedHashSet<>();
+        Set<Genre> validGenresSet = new LinkedHashSet<>();
         if ((film.getGenres() != null) && !(film.getGenres().isEmpty())) {
             for (Genre genre : film.getGenres()) {
                 if ((genre.getId() < 1) || (genre.getId() > GenreValueList.values().length)) {
@@ -81,7 +81,7 @@ public class FilmService {
                 film.getDescription(),
                 film.getReleaseDate(),
                 film.getDuration(),
-                Collections.unmodifiableSequencedSet(validGenresSet),
+                validGenresSet,
                 validFilmRating
         );
         return filmStorage.create(validFilm);
@@ -92,7 +92,7 @@ public class FilmService {
 
         getFilmById(film.getId());
 
-        SequencedSet<Genre> validGenresSet = new LinkedHashSet<>();
+        Set<Genre> validGenresSet = new LinkedHashSet<>();
         if ((film.getGenres() != null) && !(film.getGenres().isEmpty())) {
             for (Genre genre : film.getGenres()) {
                 if ((genre.getId() < 1) || (genre.getId() > GenreValueList.values().length)) {
@@ -128,7 +128,7 @@ public class FilmService {
                 film.getDescription(),
                 film.getReleaseDate(),
                 film.getDuration(),
-                Collections.unmodifiableSequencedSet(validGenresSet),
+                validGenresSet,
                 validFilmRating
         );
         return filmStorage.update(validFilm);

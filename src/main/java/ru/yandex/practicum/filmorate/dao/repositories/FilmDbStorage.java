@@ -54,7 +54,7 @@ public class FilmDbStorage implements FilmStorage {
             return List.of();
         }
 
-        Map<Long, SequencedSet<Genre>> filmsGenres = jdbc.query(FIND_ALL_FILMS_IDS_WITH_GENRES_QUERY,
+        Map<Long, Set<Genre>> filmsGenres = jdbc.query(FIND_ALL_FILMS_IDS_WITH_GENRES_QUERY,
                 new FilmDbStorage.FilmsIdsWithGenresExtractor());
 
         List<Film> films = new ArrayList<>();
@@ -66,7 +66,7 @@ public class FilmDbStorage implements FilmStorage {
                         tmpFilm.getDescription(),
                         tmpFilm.getReleaseDate(),
                         tmpFilm.getDuration(),
-                        Collections.unmodifiableSequencedSet(filmsGenres.get(tmpFilm.getId())),
+                        filmsGenres.get(tmpFilm.getId()),
                         tmpFilm.getMpa()
                 );
                 films.add(film);
@@ -274,7 +274,7 @@ public class FilmDbStorage implements FilmStorage {
             return List.of();
         }
 
-        Map<Long, SequencedSet<Genre>> filmsGenres = jdbc.query(FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY,
+        Map<Long, Set<Genre>> filmsGenres = jdbc.query(FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY,
                 new FilmDbStorage.FilmsIdsWithGenresExtractor(), limit);
 
         List<Film> films = new ArrayList<>();
@@ -285,7 +285,7 @@ public class FilmDbStorage implements FilmStorage {
                     sortFilm.getDescription(),
                     sortFilm.getReleaseDate(),
                     sortFilm.getDuration(),
-                    Collections.unmodifiableSequencedSet(filmsGenres.get(sortFilm.getId())),
+                    filmsGenres.get(sortFilm.getId()),
                     sortFilm.getMpa()
             );
             films.add(film);
@@ -297,7 +297,7 @@ public class FilmDbStorage implements FilmStorage {
         @Override
         public Optional<Film> extractData(ResultSet rs) throws SQLException, DataAccessException {
             Film tmpFilm = null;
-            SequencedSet<Genre> genres = new LinkedHashSet<>();
+            Set<Genre> genres = new LinkedHashSet<>();
             while (rs.next()) {
                 if (tmpFilm == null) {
 
@@ -316,7 +316,7 @@ public class FilmDbStorage implements FilmStorage {
                             rs.getString("description"),
                             rs.getDate("release_date").toLocalDate(),
                             rs.getInt("duration"),
-                            Collections.unmodifiableSequencedSet(new LinkedHashSet<>()),
+                            new LinkedHashSet<>(),
                             mpa
                     );
                 }
@@ -336,7 +336,7 @@ public class FilmDbStorage implements FilmStorage {
                         tmpFilm.getDescription(),
                         tmpFilm.getReleaseDate(),
                         tmpFilm.getDuration(),
-                        Collections.unmodifiableSequencedSet(genres),
+                        genres,
                         tmpFilm.getMpa()
                 );
                 return Optional.of(film);
@@ -345,10 +345,10 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    private static class FilmsIdsWithGenresExtractor implements ResultSetExtractor<Map<Long, SequencedSet<Genre>>> {
+    private static class FilmsIdsWithGenresExtractor implements ResultSetExtractor<Map<Long, Set<Genre>>> {
         @Override
-        public Map<Long, SequencedSet<Genre>> extractData(ResultSet resultSet) throws SQLException, DataAccessException {
-            Map<Long, SequencedSet<Genre>> data = new HashMap<>();
+        public Map<Long, Set<Genre>> extractData(ResultSet resultSet) throws SQLException, DataAccessException {
+            Map<Long, Set<Genre>> data = new HashMap<>();
             Genre genre;
             while (resultSet.next()) {
                 Long filmId = resultSet.getLong("film_id");
