@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
         RatingDbStorage.class, RatingRowMapper.class, FilmDbStorage.class, FilmRowMapper.class,
         RatingService.class})
 class FilmorateApplicationTests {
+
     private final UserDbStorage userDbStorage;
     private final FilmDbStorage filmDbStorage;
     private final GenreDbStorage genreDbStorage;

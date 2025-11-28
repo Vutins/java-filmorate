@@ -14,7 +14,6 @@ import java.util.*;
 public class RatingService {
 
     private final RatingStorage mpaRatingStorage;
-    private final static String PROGRAM_LEVEL = "RatingService";
 
     @Autowired
     public RatingService(RatingStorage mpaRatingStorage) {
