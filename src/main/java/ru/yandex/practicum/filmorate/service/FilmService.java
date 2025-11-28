@@ -20,7 +20,7 @@ public class FilmService {
 
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final static String PROGRAM_LEVEL = "FilmService";
+    private static final String PROGRAM_LEVEL = "FilmService";
 
     @Autowired
     public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
@@ -49,7 +49,7 @@ public class FilmService {
         if ((film.getGenres() != null) && !(film.getGenres().isEmpty())) {
             for (Genre genre : film.getGenres()) {
                 if ((genre.getId() < 1) || (genre.getId() > GenreValueList.values().length)) {
-                    throw new NotFoundException(PROGRAM_LEVEL +": Жанр с ID: " + genre.getId() + " не найден в приложении");
+                    throw new NotFoundException(PROGRAM_LEVEL + ": Жанр с ID: " + genre.getId() + " не найден в приложении");
                 }
                 if ((genre.getName() != null) && (GenreValueList.isCorrectGenre(genre.getName()))) {
                     validGenresSet.add(genre);
