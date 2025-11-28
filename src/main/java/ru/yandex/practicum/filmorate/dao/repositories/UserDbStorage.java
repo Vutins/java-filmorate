@@ -20,7 +20,6 @@ import java.util.*;
 public class UserDbStorage implements UserStorage {
 
     private final JdbcOperations jdbc;
-
     private final RowMapper<User> mapper;
 
     @Autowired
@@ -59,14 +58,12 @@ public class UserDbStorage implements UserStorage {
             INSERT INTO users (name, email, login, birthday)
             VALUES (?, ?, ?, ?);
             """;
-
         final Object[] params = {
                 user.getName(),
                 user.getEmail(),
                 user.getLogin(),
                 user.getBirthday()
         };
-
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
 
         try {
@@ -100,10 +97,8 @@ public class UserDbStorage implements UserStorage {
                     user.getLogin(),
                     user.getBirthday()
             );
-
             log.info("=== ПОЛЬЗОВАТЕЛЬ УСПЕШНО СОЗДАН: {} ===", createdUser);
             return createdUser;
-
         } catch (Exception e) {
             log.error("Ошибка при создании пользователя: {}", e.getMessage(), e);
             throw e;
@@ -143,7 +138,6 @@ public class UserDbStorage implements UserStorage {
                 FROM user_friend;
                 """;
 
-        // get all users without friends ids
         List<User> tmpUsers = jdbc.query(FIND_ALL_USERS_QUERY, mapper);
         if (tmpUsers == null || tmpUsers.isEmpty()) {
             return List.of();

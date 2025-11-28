@@ -19,7 +19,6 @@ import java.util.List;
 public class GenreDbStorage implements GenreStorage {
 
     private final JdbcOperations jdbc;
-
     private final RowMapper<Genre> mapper;
 
     @Autowired

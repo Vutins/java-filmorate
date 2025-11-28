@@ -19,7 +19,6 @@ import java.util.List;
 public class RatingDbStorage implements RatingStorage {
 
     private final JdbcOperations jdbc;
-
     private final RowMapper<Rating> mapper;
 
     @Autowired

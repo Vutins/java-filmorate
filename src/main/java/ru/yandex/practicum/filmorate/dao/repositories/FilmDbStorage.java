@@ -24,9 +24,7 @@ import java.util.*;
 public class FilmDbStorage implements FilmStorage {
 
     private final JdbcOperations jdbc;
-
     private final RowMapper<Film> mapper;
-
     private final static String PROGRAM_LEVEL = "FilmDbStorage";
 
     @Autowired
@@ -109,12 +107,13 @@ public class FilmDbStorage implements FilmStorage {
                 VALUES (?, ?);
                 """;
 
+        Integer mpaRatingId = (film.getMpa() != null) ? film.getMpa().getId() : 1;
         final Object[] params = {
                 film.getName(),
                 film.getDescription(),
                 film.getReleaseDate(),
                 film.getDuration(),
-                film.getMpa().getId()
+                mpaRatingId
         };
 
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
@@ -144,7 +143,6 @@ public class FilmDbStorage implements FilmStorage {
                             ps.setLong(1, generatedId);
                             ps.setInt(2, genreId);
                         }
-
                         public int getBatchSize() {
                             return genresIds.size();
                         }
@@ -176,7 +174,6 @@ public class FilmDbStorage implements FilmStorage {
                 INSERT INTO film_genre (film_id, genre_id)
                 VALUES (?, ?);
                 """;
-
         final Object[] params = {
                 film.getName(),
                 film.getDescription(),
@@ -185,7 +182,6 @@ public class FilmDbStorage implements FilmStorage {
                 film.getMpa().getId(),
                 film.getId()
         };
-
 
         int updatedRows = jdbc.update(UPDATE_FILM_QUERY, params);
         if (updatedRows == 0) {
@@ -225,12 +221,10 @@ public class FilmDbStorage implements FilmStorage {
                 INSERT INTO film_like (film_id, user_id)
                 VALUES (?, ?);
                 """;
-
         final Object[] params = {
                 filmId,
                 userId
         };
-
         jdbc.update(INSERT_FILM_LIKE_QUERY, params);
     }
 
@@ -249,48 +243,60 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getTopFilms(int limit) {
-        final String FIND_FILMS_WITH_MPA_RATING_SORTED_BY_LIKES_LIMITED_QUERY = """
-                SELECT f.*, mr.name AS mpa_rating_name
-                FROM films AS f
-                LEFT OUTER JOIN mpa_rating AS mr ON f.mpa_rating_id = mr.mpa_rating_id
-                LEFT OUTER JOIN film_like AS fl ON f.id = fl.film_id
-                GROUP BY f.id
-                ORDER BY COUNT(fl.user_id) DESC
-                LIMIT ?;
-                """;
-        final String FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY = """
-                SELECT f.id AS film_id, fg.genre_id, g.name AS genre_name
-                FROM films AS f
-                LEFT OUTER JOIN film_like AS fl ON f.id = fl.film_id
-                LEFT OUTER JOIN film_genre AS fg ON f.id = fg.film_id
-                LEFT OUTER JOIN genres AS g ON fg.genre_id = g.genre_id
-                GROUP BY f.id, fg.genre_id
-                ORDER BY COUNT(fl.user_id) DESC, f.id
-                LIMIT ?;
-                """;
+        final String COUNT_FILMS_QUERY = "SELECT COUNT(*) FROM films";
+        Integer totalFilms = jdbc.queryForObject(COUNT_FILMS_QUERY, Integer.class);
 
-        List<Film> sortFilms = jdbc.query(FIND_FILMS_WITH_MPA_RATING_SORTED_BY_LIKES_LIMITED_QUERY, mapper, limit);
-        if (sortFilms == null || sortFilms.isEmpty()) {
+        int actualLimit = (totalFilms != null && totalFilms < limit) ? totalFilms : limit;
+
+        final String FIND_FILMS_WITH_MPA_RATING_SORTED_BY_LIKES_LIMITED_QUERY = """
+        SELECT f.*, mr.name AS mpa_rating_name
+        FROM films AS f
+        LEFT OUTER JOIN mpa_rating AS mr ON f.mpa_rating_id = mr.mpa_rating_id
+        LEFT OUTER JOIN film_like AS fl ON f.id = fl.film_id
+        GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, mr.name
+        ORDER BY COUNT(fl.user_id) DESC
+        LIMIT ?;
+        """;
+
+        final String FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY = """
+        SELECT f.id AS film_id, fg.genre_id, g.name AS genre_name
+        FROM films AS f
+        LEFT OUTER JOIN film_like AS fl ON f.id = fl.film_id
+        LEFT OUTER JOIN film_genre AS fg ON f.id = fg.film_id
+        LEFT OUTER JOIN genres AS g ON fg.genre_id = g.genre_id
+        GROUP BY f.id, fg.genre_id, g.name
+        ORDER BY COUNT(fl.user_id) DESC, f.id
+        LIMIT ?;
+        """;
+
+        try {
+            List<Film> sortFilms = jdbc.query(FIND_FILMS_WITH_MPA_RATING_SORTED_BY_LIKES_LIMITED_QUERY, mapper, actualLimit);
+            if (sortFilms == null || sortFilms.isEmpty()) {
+                return List.of();
+            }
+
+            Map<Long, Set<Genre>> filmsGenres = jdbc.query(FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY,
+                    new FilmDbStorage.FilmsIdsWithGenresExtractor(), actualLimit);
+
+            List<Film> films = new ArrayList<>();
+            for (Film sortFilm : sortFilms) {
+                Set<Genre> genres = filmsGenres.getOrDefault(sortFilm.getId(), new LinkedHashSet<>());
+                Film film = new Film(
+                        sortFilm.getId(),
+                        sortFilm.getName(),
+                        sortFilm.getDescription(),
+                        sortFilm.getReleaseDate(),
+                        sortFilm.getDuration(),
+                        genres,
+                        sortFilm.getMpa()
+                );
+                films.add(film);
+            }
+            return films;
+        } catch (Exception e) {
+            log.error("Ошибка при получении популярных фильмов: {}", e.getMessage());
             return List.of();
         }
-
-        Map<Long, Set<Genre>> filmsGenres = jdbc.query(FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY,
-                new FilmDbStorage.FilmsIdsWithGenresExtractor(), limit);
-
-        List<Film> films = new ArrayList<>();
-        for (Film sortFilm : sortFilms) {
-            Film film = new Film(
-                    sortFilm.getId(),
-                    sortFilm.getName(),
-                    sortFilm.getDescription(),
-                    sortFilm.getReleaseDate(),
-                    sortFilm.getDuration(),
-                    filmsGenres.get(sortFilm.getId()),
-                    sortFilm.getMpa()
-            );
-            films.add(film);
-        }
-        return films;
     }
 
     private static class FilmWithRatingAndGenresExtractor implements ResultSetExtractor<Optional<Film>> {
@@ -300,7 +306,6 @@ public class FilmDbStorage implements FilmStorage {
             Set<Genre> genres = new LinkedHashSet<>();
             while (rs.next()) {
                 if (tmpFilm == null) {
-
                     Integer ratingId = rs.getInt("mpa_rating_id");
                     if (ratingId == 0) {
                         ratingId = null;
@@ -309,7 +314,6 @@ public class FilmDbStorage implements FilmStorage {
                             ratingId,
                             rs.getString("mpa_rating_name")
                     );
-
                     tmpFilm = new Film(
                             rs.getLong("id"),
                             rs.getString("name"),
@@ -320,7 +324,6 @@ public class FilmDbStorage implements FilmStorage {
                             mpa
                     );
                 }
-
                 int genreId = rs.getInt("genre_id");
                 String genreName = rs.getString("genre_name");
                 if (genreId != 0) {
@@ -353,7 +356,7 @@ public class FilmDbStorage implements FilmStorage {
             while (resultSet.next()) {
                 Long filmId = resultSet.getLong("film_id");
                 data.putIfAbsent(filmId, new LinkedHashSet<>());
-                //genre
+
                 int genreId = resultSet.getInt("genre_id");
                 String genreName = resultSet.getString("genre_name");
                 if (genreId != 0) {

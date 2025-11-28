@@ -62,7 +62,7 @@ public class FilmService {
 
         Rating validFilmRating;
         if (film.getMpa() == null) {
-            validFilmRating = new Rating(1, RatingValueList.values()[0].getRating());
+            validFilmRating = new Rating(1, RatingValueList.values()[0].getRating()); // Это работает!
         } else {
             if ((film.getMpa().getId() < 1) || (film.getMpa().getId() > RatingValueList.values().length)) {
                 throw new NotFoundException("FilmDbService: MPA рейтинг с ID: " + film.getMpa().getId() + " не найден в приложении");
@@ -134,7 +134,6 @@ public class FilmService {
         return filmStorage.update(validFilm);
     }
 
-
     public void addLike(Long filmId, Long userId) {
         ValidationTool.checkForNull(filmId, PROGRAM_LEVEL, "Лайк к фильму не может быть добален по ID фильма = null");
 
@@ -148,9 +147,10 @@ public class FilmService {
     }
 
     public void removeLike(Long filmId, Long userId) {
-        ValidationTool.checkForNull(filmId, PROGRAM_LEVEL, "Лайк у фильма не может быть удален по ID фильма = null");
-
-        ValidationTool.checkForNull(userId, PROGRAM_LEVEL, "Лайк у фильма не может быть удален по ID пользователя = null");
+        ValidationTool.checkForNull(filmId, PROGRAM_LEVEL, "Лайк у фильма не может быть удален по ID" +
+                " фильма = null");
+        ValidationTool.checkForNull(userId, PROGRAM_LEVEL, "Лайк у фильма не может быть удален по ID" +
+                " пользователя = null");
 
         filmStorage.getFilmById(filmId);
         userStorage.getUserById(userId);
@@ -160,6 +160,9 @@ public class FilmService {
     }
 
     public List<Film> getPopularFilms(int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
         return List.copyOf(filmStorage.getTopFilms(limit));
     }
 }
