@@ -228,6 +228,7 @@ public class FilmDbStorage implements FilmStorage {
         jdbc.update(INSERT_FILM_LIKE_QUERY, params);
     }
 
+
     @Override
     public void removeLike(Long filmId, Long userId) {
         final String DELETE_FILM_LIKE_QUERY = """
