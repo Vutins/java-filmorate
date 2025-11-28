@@ -143,6 +143,7 @@ public class FilmDbStorage implements FilmStorage {
                             ps.setLong(1, generatedId);
                             ps.setInt(2, genreId);
                         }
+
                         public int getBatchSize() {
                             return genresIds.size();
                         }
@@ -227,7 +228,6 @@ public class FilmDbStorage implements FilmStorage {
         };
         jdbc.update(INSERT_FILM_LIKE_QUERY, params);
     }
-
 
     @Override
     public void removeLike(Long filmId, Long userId) {
