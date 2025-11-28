@@ -11,7 +11,6 @@ import ru.yandex.practicum.filmorate.validation.ValidationTool;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
 @Slf4j
 @Service
 public class UserService {
@@ -40,11 +39,9 @@ public class UserService {
     public User create(User user) {
         ValidationTool.userCheck(user, PROGRAM_LEVEL);
 
-        String validUserName;
-        if (user.getName() == null || user.getName().isBlank()) {
+        String validUserName = user.getName();
+        if (validUserName == null || validUserName.isBlank()) {
             validUserName = user.getLogin();
-        } else {
-            validUserName = user.getName();
         }
 
         User validUser = new User(
@@ -65,11 +62,9 @@ public class UserService {
 
         getUserById(user.getId());
 
-        String validUserName;
-        if (user.getName() == null || user.getName().isBlank()) {
+        String validUserName = user.getName();
+        if (validUserName == null || validUserName.isBlank()) {
             validUserName = user.getLogin();
-        } else {
-            validUserName = user.getName();
         }
 
         User validUser = new User(
@@ -98,7 +93,6 @@ public class UserService {
     }
 
     public void removeFriend(Long userId, Long friendId) {
-
         ValidationTool.checkId(userId, friendId, PROGRAM_LEVEL, "Друг не может быть удален ID = null");
 
         User user = userStorage.getUserById(userId);
@@ -133,7 +127,6 @@ public class UserService {
 
         Set<Long> setOfUserFriendsIds = userStorage.getUserFriendsIdsById(userId);
         Set<Long> setOfAnotherUserFriendsIds = userStorage.getUserFriendsIdsById(anotherUserId);
-
 
         if (setOfUserFriendsIds == null || setOfAnotherUserFriendsIds == null) {
             log.warn("UserService: Не удалось получить объекты User по ID - не найдены в приложении");
