@@ -13,10 +13,7 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Rating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 @Slf4j
@@ -368,6 +365,38 @@ public class FilmDbStorage implements FilmStorage {
                 }
             }
             return data;
+        }
+    }
+
+    @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        final String FIND_COMMON_FILMS = """
+            WITH common_films AS (
+                SELECT DISTINCT f.*, 
+                       mr.name AS mpa_rating_name,
+                    (SELECT COUNT(*) FROM film_like WHERE film_id = f.id) as total_likes
+                FROM films f
+                LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+                WHERE EXISTS (
+                    SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
+                )
+                AND EXISTS (
+                    SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
+                )
+            )
+            SELECT cf.*,
+                fg.genre_id,
+                g.name AS genre_name
+            FROM common_films cf
+            LEFT JOIN film_genre fg ON cf.id = fg.film_id
+            LEFT JOIN genres g ON fg.genre_id = g.genre_id
+            ORDER BY cf.total_likes DESC, cf.id, fg.genre_id;
+        """;
+        try {
+           return jdbc.query(FIND_COMMON_FILMS, mapper, userId, friendId);
+        } catch (RuntimeException e) {
+            log.error("произошла ошибка при чтение из базы данных - поиск общих фильмов" );
+            return List.of();
         }
     }
 }
