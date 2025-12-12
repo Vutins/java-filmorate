@@ -140,4 +140,8 @@ public class UserService {
         log.info("Список всех общих друзей пользователей успешно создан");
         return List.copyOf(commonFriends);
     }
+
+    public boolean validUserId(Long userId) {
+        return userStorage.validUserId(userId);
+    }
 }
