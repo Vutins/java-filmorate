@@ -24,7 +24,7 @@ public class FilmController {
 
     @DeleteMapping("/{filmId}")
     @ResponseStatus(HttpStatus.OK)
-    public void delete(@PathVariable Long filmId){
+    public void delete(@PathVariable Long filmId) {
         log.info("Запрос на удаление фильма ID {}", filmId);
         filmService.delete(filmId);
     }
