@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.validation.ValidationTool;
@@ -21,6 +22,32 @@ public class UserService {
     @Autowired
     public UserService(UserStorage userStorage) {
         this.userStorage = userStorage;
+    }
+
+    public void delete(Long userId) {
+        String message;
+
+        if (userId == null || userId < 1) {
+            message = String.format(
+                    "%s : Попытка удалить user по ID = %s",
+                    PROGRAM_LEVEL, String.valueOf(userId)
+            );
+            log.warn(message);
+            throw new ValidationException(message);
+        }
+
+        if (userStorage.delete(userId) == false) {
+            message = String.format(
+                    "%s : User с ID = %s не найден в приложении",
+                    PROGRAM_LEVEL, String.valueOf(userId));
+            log.warn(message);
+            throw new NotFoundException(message);
+        }
+
+        message = String.format(
+                "%s : User ID %s успешно удален",
+                PROGRAM_LEVEL, String.valueOf(userId));
+        log.info(message);
     }
 
     public List<User> getAllUsers() {

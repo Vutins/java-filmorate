@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface FilmStorage {
 
+    boolean delete(Long filmId);
+
     List<Film> getAllFilms();
 
     Film getFilmById(Long filmId);

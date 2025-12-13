@@ -34,6 +34,16 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    public boolean delete(Long filmId) {
+        final String DELETE_FILM_QUERY = """
+                DELETE
+                FROM films
+                WHERE id = ?;
+                """;
+        return jdbc.update(DELETE_FILM_QUERY, filmId) > 0;
+    }
+
+    @Override
     public List<Film> getAllFilms() {
         final String FIND_ALL_FILMS_WITH_MPA_RATING_QUERY = """
                 SELECT f.*, mr.name AS mpa_rating_name
@@ -191,7 +201,7 @@ public class FilmDbStorage implements FilmStorage {
 
         int deletedRows = jdbc.update(DELETE_GENRES_QUERY, film.getId());
         if (deletedRows == 0) {
-            log.info(PROGRAM_LEVEL + ": Не удалось удалить genres у Film с ID: {}", film.getId());
+            log.info("{}: Не удалось удалить genres у Film с ID: {}", PROGRAM_LEVEL, film.getId());
         }
 
         if (!(film.getGenres().isEmpty())) {
@@ -238,7 +248,7 @@ public class FilmDbStorage implements FilmStorage {
 
         int rowsDeleted = jdbc.update(DELETE_FILM_LIKE_QUERY, filmId, userId);
         if (rowsDeleted == 0) {
-            log.info(PROGRAM_LEVEL + ": Не удалось удалить like у Film с ID: {}", filmId);
+            log.info("{}: Не удалось удалить like у Film с ID: {}", PROGRAM_LEVEL, filmId);
         }
     }
 
