@@ -59,7 +59,8 @@ public class FilmControllerTest {
                 LocalDate.of(2000, 1, 1),
                 120,
                 Collections.unmodifiableSequencedSet(new LinkedHashSet<>()),
-                mpa
+                mpa,
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>())
         );
         filmDbStorage.create(film);
     }
@@ -108,7 +109,8 @@ public class FilmControllerTest {
                 LocalDate.of(2001, 1, 1),
                 130,
                 Collections.unmodifiableSequencedSet(new LinkedHashSet<>()),
-                new Rating(2, "PG")
+                new Rating(2, "PG"),
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>())
         );
         filmDbStorage.update(updatedFilm);
         Film film = filmDbStorage.getFilmById(1L);
@@ -134,7 +136,8 @@ public class FilmControllerTest {
                 LocalDate.of(2002, 1, 1),
                 110,
                 Collections.unmodifiableSequencedSet(new LinkedHashSet<>()),
-                new Rating(2, "PG")
+                new Rating(2, "PG"),
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>())
         );
         filmDbStorage.create(film2);
 
@@ -168,7 +171,8 @@ public class FilmControllerTest {
                 LocalDate.of(2003, 1, 1),
                 100,
                 genres,
-                new Rating(1, "G")
+                new Rating(1, "G"),
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>())
         );
         Film created = filmDbStorage.create(filmWithGenres);
         Film retrieved = filmDbStorage.getFilmById(created.getId());
@@ -196,7 +200,8 @@ public class FilmControllerTest {
                 LocalDate.of(2002, 1, 1),
                 110,
                 Collections.unmodifiableSequencedSet(new LinkedHashSet<>()),
-                new Rating(2, "PG")
+                new Rating(2, "PG"),
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>())
         );
         Film created = filmDbStorage.create(film2);
         assertNotNull(created.getId());

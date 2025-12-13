@@ -8,6 +8,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.InternalServerException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Rating;
@@ -65,7 +66,9 @@ public class FilmDbStorage implements FilmStorage {
         Map<Long, Set<Genre>> filmsGenres = jdbc.query(FIND_ALL_FILMS_IDS_WITH_GENRES_QUERY,
                 new FilmDbStorage.FilmsIdsWithGenresExtractor());
 
+
         List<Film> films = new ArrayList<>();
+        //Set<Director> directors = new HashSet<>();
         for (Film tmpFilm : tmpFilms) {
             if (filmsGenres.containsKey(tmpFilm.getId())) {
                 Film film = new Film(
@@ -75,7 +78,8 @@ public class FilmDbStorage implements FilmStorage {
                         tmpFilm.getReleaseDate(),
                         tmpFilm.getDuration(),
                         filmsGenres.get(tmpFilm.getId()),
-                        tmpFilm.getMpa()
+                        tmpFilm.getMpa(),
+                        tmpFilm.getDirectors()
                 );
                 films.add(film);
             } else {
@@ -159,6 +163,9 @@ public class FilmDbStorage implements FilmStorage {
                         }
                     });
         }
+
+//        addDirectorToFilm(film);
+       // Set<Director> directors = new HashSet<>();
         return new Film(
                 generatedId,
                 film.getName(),
@@ -166,7 +173,8 @@ public class FilmDbStorage implements FilmStorage {
                 film.getReleaseDate(),
                 film.getDuration(),
                 film.getGenres(),
-                film.getMpa()
+                film.getMpa(),
+                film.getDirectors()
         );
     }
 
@@ -203,6 +211,12 @@ public class FilmDbStorage implements FilmStorage {
         if (deletedRows == 0) {
             log.info("{}: Не удалось удалить genres у Film с ID: {}", PROGRAM_LEVEL, film.getId());
         }
+
+        //Валидация по режисерам
+//        if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
+//            deleteDirectorsFromFilm(film.getId());
+//            addDirectorToFilm(film);
+//        }
 
         if (!(film.getGenres().isEmpty())) {
             List<Integer> genresIds = film.getGenres()
@@ -289,6 +303,7 @@ public class FilmDbStorage implements FilmStorage {
             Map<Long, Set<Genre>> filmsGenres = jdbc.query(FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY,
                     new FilmDbStorage.FilmsIdsWithGenresExtractor(), actualLimit);
 
+           // Set<Director> directors = new HashSet<>();
             List<Film> films = new ArrayList<>();
             for (Film sortFilm : sortFilms) {
                 Set<Genre> genres = filmsGenres.getOrDefault(sortFilm.getId(), new LinkedHashSet<>());
@@ -299,7 +314,8 @@ public class FilmDbStorage implements FilmStorage {
                         sortFilm.getReleaseDate(),
                         sortFilm.getDuration(),
                         genres,
-                        sortFilm.getMpa()
+                        sortFilm.getMpa(),
+                        sortFilm.getDirectors()
                 );
                 films.add(film);
             }
@@ -316,6 +332,7 @@ public class FilmDbStorage implements FilmStorage {
         public Optional<Film> extractData(ResultSet rs) throws SQLException, DataAccessException {
             Film tmpFilm = null;
             Set<Genre> genres = new LinkedHashSet<>();
+            Set<Director> directors = new LinkedHashSet<>();
             while (rs.next()) {
                 if (tmpFilm == null) {
                     Integer ratingId = rs.getInt("mpa_rating_id");
@@ -333,7 +350,8 @@ public class FilmDbStorage implements FilmStorage {
                             rs.getDate("release_date").toLocalDate(),
                             rs.getInt("duration"),
                             new LinkedHashSet<>(),
-                            mpa
+                            mpa,
+                            directors
                     );
                 }
                 int genreId = rs.getInt("genre_id");
@@ -352,7 +370,8 @@ public class FilmDbStorage implements FilmStorage {
                         tmpFilm.getReleaseDate(),
                         tmpFilm.getDuration(),
                         genres,
-                        tmpFilm.getMpa()
+                        tmpFilm.getMpa(),
+                        directors
                 );
                 return Optional.of(film);
             }
@@ -380,4 +399,22 @@ public class FilmDbStorage implements FilmStorage {
             return data;
         }
     }
+
+//    private void addDirectorToFilm(Film film) {
+//        log.debug("DAO: addDirectorToFilm");
+//        if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
+//            final String sql = "INSERT INTO film_directors (director_id, film_id) VALUES (?, ?)";
+//            //int result = jdbcTemplate.update(sql, directorId, filmId);
+//            jdbc.batchUpdate(sql, film.getDirectors(), film.getDirectors().size(), ((ps, director) -> {
+//                ps.setLong(1, director.getId());
+//                ps.setLong(2, film.getId());
+//            }));
+//        }
+//    }
+//
+//    private void deleteDirectorsFromFilm(Long filmId) {
+//        log.debug("DAO: Deleting film directors from film");
+//        final String sql = "DELETE FROM film_directors WHERE film_id = ?";
+//        int result = jdbc.update(sql, filmId);
+//    }
 }
