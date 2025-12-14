@@ -23,5 +23,6 @@ public interface FilmStorage {
     List<Film> getTopFilms(int limit);
 
     List<Film> getCommonFilms(Long userId, Long friendId);
+
     List<Film> getFilmsByIds(List<Long> filmIds);
 }
