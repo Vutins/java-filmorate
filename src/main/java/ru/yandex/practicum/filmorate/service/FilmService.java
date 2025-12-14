@@ -209,7 +209,21 @@ public class FilmService {
         return List.copyOf(films);
     }
 
-    //Возможно могут прилететь без режиссёров и это не норма!
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        Optional<Director> director = directorStorage.getById(directorId);
+        if (!director.isPresent()) {
+            throw new NotFoundException("Режиссёр с id=" + directorId + " не найден");
+        }
+
+        List<Film> films = filmStorage.getFilmsByDirector(directorId, sortBy);
+        if (films.isEmpty()) {
+            return films;
+        }
+
+        addProducersToFilms(films);
+        return films;
+    }
+
     private Film validateDirectorExists(Film film) {
         if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
             List<Director> directors = directorStorage.getAll().stream()
@@ -241,7 +255,6 @@ public class FilmService {
 
             for (Film film : films) {
                 if (directors.containsKey(film.getId())) {
-                    //film.getDirectors().addAll(directors.get(film.getId()));
                     film.setDirectors(directors.get(film.getId()));
                 }
             }

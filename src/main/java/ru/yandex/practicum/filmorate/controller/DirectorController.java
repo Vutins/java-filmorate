@@ -40,7 +40,8 @@ public class DirectorController {
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED) //под вопросом
+    @ResponseStatus(HttpStatus.CREATED)
+        //под вопросом
     Director create(@Valid @RequestBody Director director) {
         log.info("Получен Http-запрос на создание режиссёра {}", director);
         Director result = directorService.create(director);

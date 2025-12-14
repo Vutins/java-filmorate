@@ -19,7 +19,6 @@ public class Film {
     @Size(max = 200)
     private String description;
     @NotNull
-    @PastOrPresent(message = "Дата не может быть в будущем")
     private LocalDate releaseDate;
     @Positive
     private int duration;

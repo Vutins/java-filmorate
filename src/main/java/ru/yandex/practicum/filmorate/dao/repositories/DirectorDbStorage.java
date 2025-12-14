@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.exception.InternalServerException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.DirectorStorage;
@@ -45,16 +44,13 @@ public class DirectorDbStorage implements DirectorStorage {
     }
 
     @Override
-    public Director update(Director director) {
+    public int update(Director director) {
         log.debug("DAO: Updating director {}", director);
         final String sql = "UPDATE directors SET name = ? WHERE director_id = ?";
 
         int updated = jdbcTemplate.update(sql, director.getName(), director.getId());
 
-        if (updated == 0) {
-            throw new InternalServerException("Не удалось обновить данные режиссёра");
-        }
-        return director;
+        return updated;
     }
 
     @Override
@@ -63,9 +59,6 @@ public class DirectorDbStorage implements DirectorStorage {
         final String sql = "DELETE FROM directors WHERE director_id = ?";
         int deleted = jdbcTemplate.update(sql, id);
 
-//        if (deleted == 0) {
-//            throw new InternalServerException("Не удалось удалить данные режиссёра");
-//        }
         return deleted;
     }
 
@@ -93,15 +86,10 @@ public class DirectorDbStorage implements DirectorStorage {
     public void addDirectorToFilm(Film film) {
         log.debug("DAO: Adding director to film");
         final String sql = "INSERT INTO film_directors (director_id, film_id) VALUES (?, ?)";
-        //int result = jdbcTemplate.update(sql, directorId, filmId);
         jdbcTemplate.batchUpdate(sql, film.getDirectors(), film.getDirectors().size(), ((ps, director) -> {
             ps.setLong(1, director.getId());
             ps.setLong(2, film.getId());
         }));
-//         //возможно нужно убрать проверку из-за тестов постмана!!!!!!!!
-//        if (result == 0) {
-//            throw new InternalServerException("Не удалось добавить данные в таблицу film_directors");
-//        }
     }
 
     @Override
@@ -110,10 +98,6 @@ public class DirectorDbStorage implements DirectorStorage {
         final String sql = "DELETE FROM film_directors WHERE film_id = ?";
         int result = jdbcTemplate.update(sql, filmId);
 
-//         //возможно нужно убрать проверку из-за тестов постмана!!!!!!!!
-//        if (result == 0) {
-//            throw new InternalServerException("Не удалось удалить данные из таблицы film_directors");
-//        }
         return result;
     }
 

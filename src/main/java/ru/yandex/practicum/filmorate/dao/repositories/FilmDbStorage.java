@@ -8,6 +8,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.InternalServerException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -326,6 +327,66 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
+    @Override
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        final String sql;
+
+        if ("likes".equals(sortBy)) {
+            sql = """
+            SELECT f.*, mr.name AS mpa_rating_name
+            FROM films f
+            JOIN film_directors fd ON f.id = fd.film_id
+            LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+            LEFT JOIN film_like fl ON f.id = fl.film_id
+            WHERE fd.director_id = ?
+            GROUP BY f.id, mr.name
+            ORDER BY COUNT(fl.user_id) DESC
+        """;
+        } else if ("year".equals(sortBy)) {
+            sql = """
+            SELECT f.*, mr.name AS mpa_rating_name
+            FROM films f
+            JOIN film_directors fd ON f.id = fd.film_id
+            LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+            WHERE fd.director_id = ?
+            ORDER BY f.release_date
+        """;
+        } else {
+            throw new ValidationException("Неверный параметр сортировки: " + sortBy);
+        }
+
+        final String genresQuery = """
+        SELECT fg.film_id, fg.genre_id, g.name AS genre_name
+        FROM film_genre fg
+        JOIN genres g ON fg.genre_id = g.genre_id
+        WHERE fg.film_id IN (
+            SELECT film_id FROM film_directors WHERE director_id = ?
+        )
+    """;
+
+        List<Film> films = jdbc.query(sql, mapper, directorId);
+        if (films.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Set<Genre>> filmsGenres =
+                jdbc.query(genresQuery, new FilmsIdsWithGenresExtractor(), directorId);
+
+        return films.stream()
+                .map(f -> new Film(
+                        f.getId(),
+                        f.getName(),
+                        f.getDescription(),
+                        f.getReleaseDate(),
+                        f.getDuration(),
+                        filmsGenres.getOrDefault(f.getId(), new LinkedHashSet<>()),
+                        f.getMpa(),
+                        f.getDirectors()
+                ))
+                .toList();
+    }
+
+
     private static class FilmWithRatingAndGenresExtractor implements ResultSetExtractor<Optional<Film>> {
 
         @Override
@@ -399,22 +460,4 @@ public class FilmDbStorage implements FilmStorage {
             return data;
         }
     }
-
-//    private void addDirectorToFilm(Film film) {
-//        log.debug("DAO: addDirectorToFilm");
-//        if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
-//            final String sql = "INSERT INTO film_directors (director_id, film_id) VALUES (?, ?)";
-//            //int result = jdbcTemplate.update(sql, directorId, filmId);
-//            jdbc.batchUpdate(sql, film.getDirectors(), film.getDirectors().size(), ((ps, director) -> {
-//                ps.setLong(1, director.getId());
-//                ps.setLong(2, film.getId());
-//            }));
-//        }
-//    }
-//
-//    private void deleteDirectorsFromFilm(Long filmId) {
-//        log.debug("DAO: Deleting film directors from film");
-//        final String sql = "DELETE FROM film_directors WHERE film_id = ?";
-//        int result = jdbc.update(sql, filmId);
-//    }
 }

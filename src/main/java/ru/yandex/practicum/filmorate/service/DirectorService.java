@@ -47,9 +47,12 @@ public class DirectorService {
 
     public Director update(Director director) {
         log.debug("Вызван метод update() в DirectorService");
-        Director directorResult = directorStorage.update(director);
+        int directorResult = directorStorage.update(director);
+        if (directorResult == 0) {
+            throw new NotFoundException("Режиссёр с таким ID: " + director.getId() + " не найден");
+        }
         log.info("Успешно обработан метод update() в DirectorService");
-        return directorResult;
+        return director;
     }
 
     public void delete(Long id) {
