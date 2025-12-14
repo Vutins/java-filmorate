@@ -172,6 +172,10 @@ public class UserService {
         return List.copyOf(commonFriends);
     }
 
+    public boolean validUserId(Long userId) {
+        return userStorage.validUserId(userId);
+    }
+
     public List<Film> getRecommendations(Long userId) {
         ValidationTool.checkId(userId, PROGRAM_LEVEL, "Рекомендации не могут быть получены по некорректному ID");
 
@@ -244,7 +248,6 @@ public class UserService {
                 mostSimilarUserId = otherUser.getId();
             }
         }
-
         return mostSimilarUserId;
     }
 }

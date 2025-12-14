@@ -21,7 +21,7 @@ public class FilmRowMapper implements RowMapper<Film> {
         }
         Rating mpa = new Rating(
                 ratingId,
-                rs.getString("mpa_rating_name")
+                rs.getString("name")
         );
 
         return new Film(
