@@ -208,6 +208,8 @@ public class UserDbStorage implements UserStorage {
                 """;
         List<User> user = jdbc.query(FIND_USER_BY_ID, mapper, userId);
         return !user.isEmpty();
+    }
+
     @Override
     public List<Long> getLikedFilmsByUserId(Long userId) {
         final String FIND_LIKED_FILMS_QUERY = """
