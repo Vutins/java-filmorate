@@ -69,7 +69,7 @@ public class EventDbStorage {
 
         Long generatedId = keyHolder.getKeyAs(Long.class);
         if (generatedId == null) {
-            throw new InternalServerException("EventDbStorage: Не удалось сохранить данные Even");
+            throw new InternalServerException("EventDbStorage: Не удалось сохранить данные Event");
         }
 
         return Event.builder()
