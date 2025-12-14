@@ -71,7 +71,6 @@ public class FilmDbStorage implements FilmStorage {
 
 
         List<Film> films = new ArrayList<>();
-        //Set<Director> directors = new HashSet<>();
         for (Film tmpFilm : tmpFilms) {
             if (filmsGenres.containsKey(tmpFilm.getId())) {
                 Film film = new Film(tmpFilm.getId(), tmpFilm.getName(), tmpFilm.getDescription(), tmpFilm.getReleaseDate(), tmpFilm.getDuration(), filmsGenres.get(tmpFilm.getId()), tmpFilm.getMpa(), tmpFilm.getDirectors());
@@ -253,7 +252,6 @@ public class FilmDbStorage implements FilmStorage {
 
             Map<Long, Set<Genre>> filmsGenres = jdbc.query(FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY, new FilmDbStorage.FilmsIdsWithGenresExtractor(), actualLimit);
 
-            // Set<Director> directors = new HashSet<>();
             List<Film> films = new ArrayList<>();
             for (Film sortFilm : sortFilms) {
                 Set<Genre> genres = filmsGenres.getOrDefault(sortFilm.getId(), new LinkedHashSet<>());
