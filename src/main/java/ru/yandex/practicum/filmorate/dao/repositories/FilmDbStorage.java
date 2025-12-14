@@ -460,4 +460,61 @@ public class FilmDbStorage implements FilmStorage {
             return data;
         }
     }
+
+    @Override
+    public List<Film> getFilmsByIds(List<Long> filmIds) {
+        if (filmIds == null || filmIds.isEmpty()) {
+            return List.of();
+        }
+
+        final String FIND_FILMS_BY_IDS_QUERY = """
+                SELECT f.*, mr.name AS mpa_rating_name
+                FROM films AS f
+                LEFT OUTER JOIN mpa_rating AS mr ON f.mpa_rating_id = mr.mpa_rating_id
+                WHERE f.id IN (%s);
+                """;
+
+        final String FIND_GENRES_FOR_FILMS_QUERY = """
+                SELECT fg.film_id, fg.genre_id, g.name AS genre_name
+                FROM film_genre AS fg
+                LEFT OUTER JOIN genres AS g ON fg.genre_id = g.genre_id
+                WHERE fg.film_id IN (%s);
+                """;
+
+        // Создаем строку с плейсхолдерами
+        String placeholders = String.join(",", Collections.nCopies(filmIds.size(), "?"));
+
+        List<Film> films = jdbc.query(
+                String.format(FIND_FILMS_BY_IDS_QUERY, placeholders),
+                mapper,
+                filmIds.toArray()
+        );
+
+        if (films.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Set<Genre>> filmsGenres = jdbc.query(
+                String.format(FIND_GENRES_FOR_FILMS_QUERY, placeholders),
+                new FilmsIdsWithGenresExtractor(),
+                filmIds.toArray()
+        );
+
+        List<Film> result = new ArrayList<>();
+        for (Film film : films) {
+            Set<Genre> genres = filmsGenres.getOrDefault(film.getId(), new LinkedHashSet<>());
+            Film filmWithGenres = new Film(
+                    film.getId(),
+                    film.getName(),
+                    film.getDescription(),
+                    film.getReleaseDate(),
+                    film.getDuration(),
+                    genres,
+                    film.getMpa()
+            );
+            result.add(filmWithGenres);
+        }
+
+        return result;
+    }
 }
