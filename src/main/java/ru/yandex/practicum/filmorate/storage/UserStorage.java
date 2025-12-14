@@ -27,5 +27,7 @@ public interface UserStorage {
 
     void removeFriend(Long userId, Long friendId);
 
+    boolean validUserId(Long userId);
+
     List<Long> getLikedFilmsByUserId(Long userId);
 }

@@ -77,4 +77,11 @@ public class FilmController {
         log.info("Запрос на удаление лайка у фильма по ID пользователя");
         filmService.removeLike(id, userId);
     }
+
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/common")
+    public List<Film> getCommonFilms(@RequestParam Long userId, @RequestParam Long friendId) {
+        log.info("запрос на получения списка общих фильмов");
+        return filmService.getCommonFilms(userId,friendId);
+    }
 }
