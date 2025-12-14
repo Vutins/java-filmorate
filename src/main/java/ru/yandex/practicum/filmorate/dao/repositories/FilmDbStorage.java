@@ -392,8 +392,7 @@ public class FilmDbStorage implements FilmStorage {
         """;
 
         final String FIND_GENRES_FOR_FILMS = """
-        SELECT 
-            fg.film_id,
+        SELECT fg.film_id,
             g.genre_id,
             g.name AS genre_name
         FROM film_genre fg
