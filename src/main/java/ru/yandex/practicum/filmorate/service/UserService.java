@@ -5,7 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.validation.ValidationTool;
 
@@ -17,11 +19,13 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserStorage userStorage;
+    private final FilmStorage filmStorage;
     private static final String PROGRAM_LEVEL = "UserService";
 
     @Autowired
-    public UserService(UserStorage userStorage) {
+    public UserService(UserStorage userStorage, FilmStorage filmStorage) { // Изменить конструктор
         this.userStorage = userStorage;
+        this.filmStorage = filmStorage;
     }
 
     public void delete(Long userId) {
@@ -166,5 +170,81 @@ public class UserService {
         List<User> commonFriends = userStorage.getUsersByIdSet(resultOfIntersection);
         log.info("Список всех общих друзей пользователей успешно создан");
         return List.copyOf(commonFriends);
+    }
+
+    public List<Film> getRecommendations(Long userId) {
+        ValidationTool.checkId(userId, PROGRAM_LEVEL, "Рекомендации не могут быть получены по некорректному ID");
+
+        // Получаем пользователя для проверки его существования
+        userStorage.getUserById(userId);
+
+        // Получаем лайки текущего пользователя
+        List<Long> userLikedFilms = userStorage.getLikedFilmsByUserId(userId);
+
+        if (userLikedFilms.isEmpty()) {
+            log.info("У пользователя {} нет лайков, возвращаем пустые рекомендации", userId);
+            return List.of();
+        }
+
+        // Получаем всех пользователей
+        List<User> allUsers = userStorage.getAllUsers();
+
+        // Ищем пользователя с максимальным пересечением лайков
+        Long mostSimilarUserId = findMostSimilarUser(userId, userLikedFilms, allUsers);
+
+        if (mostSimilarUserId == null) {
+            log.info("Для пользователя {} не найден пользователь с похожими вкусами", userId);
+            return List.of();
+        }
+
+        // Получаем лайки похожего пользователя
+        List<Long> similarUserLikedFilms = userStorage.getLikedFilmsByUserId(mostSimilarUserId);
+
+        // Находим фильмы, которые понравились похожему пользователю, но не текущему
+        List<Long> recommendedFilmIds = similarUserLikedFilms.stream()
+                .filter(filmId -> !userLikedFilms.contains(filmId))
+                .collect(Collectors.toList());
+
+        if (recommendedFilmIds.isEmpty()) {
+            log.info("Для пользователя {} нет рекомендаций", userId);
+            return List.of();
+        }
+
+        // Получаем объекты фильмов
+        List<Film> recommendedFilms = filmStorage.getFilmsByIds(recommendedFilmIds);
+
+        log.info("Для пользователя {} найдено {} рекомендаций", userId, recommendedFilms.size());
+        return recommendedFilms;
+    }
+
+    private Long findMostSimilarUser(Long userId, List<Long> userLikedFilms, List<User> allUsers) {
+        Long mostSimilarUserId = null;
+        int maxCommonLikes = 0;
+
+        Set<Long> userLikedSet = new HashSet<>(userLikedFilms);
+
+        for (User otherUser : allUsers) {
+            if (otherUser.getId().equals(userId)) {
+                continue; // Пропускаем текущего пользователя
+            }
+
+            List<Long> otherUserLikedFilms = userStorage.getLikedFilmsByUserId(otherUser.getId());
+            if (otherUserLikedFilms.isEmpty()) {
+                continue;
+            }
+
+            Set<Long> otherUserLikedSet = new HashSet<>(otherUserLikedFilms);
+
+            // Находим пересечение лайков
+            Set<Long> intersection = new HashSet<>(userLikedSet);
+            intersection.retainAll(otherUserLikedSet);
+
+            if (intersection.size() > maxCommonLikes) {
+                maxCommonLikes = intersection.size();
+                mostSimilarUserId = otherUser.getId();
+            }
+        }
+
+        return mostSimilarUserId;
     }
 }

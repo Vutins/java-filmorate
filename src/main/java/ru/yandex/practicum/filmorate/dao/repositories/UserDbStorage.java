@@ -192,4 +192,15 @@ public class UserDbStorage implements UserStorage {
 
         return Set.copyOf(jdbc.queryForList(FIND_USER_FRIENDS_IDS_BY_ID_QUERY, Long.class, userId));
     }
+
+    @Override
+    public List<Long> getLikedFilmsByUserId(Long userId) {
+        final String FIND_LIKED_FILMS_QUERY = """
+                SELECT film_id
+                FROM film_like
+                WHERE user_id = ?
+                """;
+
+        return jdbc.queryForList(FIND_LIKED_FILMS_QUERY, Long.class, userId);
+    }
 }

@@ -62,4 +62,10 @@ public class ErrorHandler {
     public ErrorResponse throwableError(final Throwable e) {
         return new ErrorResponse("ERROR[500]: Произошла ошибка Throwable: ", e.getMessage());
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalArgumentException(final IllegalArgumentException e) {
+        return new ErrorResponse("ERROR[400]: Произошла ошибка IllegalArgumentException: ", e.getMessage());
+    }
 }
