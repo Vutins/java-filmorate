@@ -5,7 +5,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.enums.EventTypes;
+import ru.yandex.practicum.filmorate.model.enums.OperationTypes;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.validation.ValidationTool;
 
@@ -16,12 +19,20 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
 
+    private final EventService eventService;
     private final UserStorage userStorage;
     private static final String PROGRAM_LEVEL = "UserService";
 
     @Autowired
-    public UserService(UserStorage userStorage) {
+    public UserService(UserStorage userStorage, EventService eventService) {
         this.userStorage = userStorage;
+        this.eventService = eventService;
+    }
+
+    public List<Event> getFeed(Long userId) {
+        log.info("{}: проверка наличия user ID {} в базе", PROGRAM_LEVEL, userId);
+        getUserById(userId);
+        return eventService.getFeed(userId);
     }
 
     public void delete(Long userId) {
@@ -114,6 +125,8 @@ public class UserService {
         if (!(userFriendsIdsSet.contains(friendId))) {
             userStorage.addFriend(userId, friendId);
             log.info("Друг успешно добавлен");
+            eventService.addEvent(userId, EventTypes.FRIEND, OperationTypes.ADD, friendId);
+            log.info("Добавлено событие (add friend) в ленту пользователя");
         } else {
             log.info("Друг был добавлен ранее");
         }
@@ -129,6 +142,8 @@ public class UserService {
         if (userFriendsIds.contains(friendId)) {
             userStorage.removeFriend(userId, friendId);
             log.info("Друг успешно удален");
+            eventService.addEvent(userId, EventTypes.FRIEND, OperationTypes.REMOVE, friendId);
+            log.info("Добавлено событие (remove friend) в ленту пользователя");
         } else {
             log.info("друг не может быть удален - отсутствует в списке друзей");
         }

@@ -5,7 +5,9 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.model.enums.EventTypes;
 import ru.yandex.practicum.filmorate.model.enums.GenreValueList;
+import ru.yandex.practicum.filmorate.model.enums.OperationTypes;
 import ru.yandex.practicum.filmorate.model.enums.RatingValueList;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
@@ -17,13 +19,15 @@ import java.util.*;
 @Slf4j
 public class FilmService {
 
+    private final EventService eventService;
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
     private static final String PROGRAM_LEVEL = "FilmService";
 
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
+    public FilmService(FilmStorage filmStorage, UserStorage userStorage, EventService eventService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
+        this.eventService = eventService;
     }
 
     public void delete(Long filmId) {
@@ -168,6 +172,8 @@ public class FilmService {
 
         filmStorage.addLike(filmId, userId);
         log.info("Лайк фильму успешно добавлен");
+        eventService.addEvent(userId, EventTypes.LIKE, OperationTypes.ADD, filmId);
+        log.info("Добавлено событие (add like) в ленту пользователя");
     }
 
     public void removeLike(Long filmId, Long userId) {
@@ -181,6 +187,8 @@ public class FilmService {
 
         filmStorage.removeLike(filmId, userId);
         log.info("Лайк фильма успешно удален");
+        eventService.addEvent(userId, EventTypes.LIKE, OperationTypes.REMOVE, filmId);
+        log.info("Добавлено событие (remove like) в ленту пользователя");
     }
 
     public List<Film> getPopularFilms(int limit) {
