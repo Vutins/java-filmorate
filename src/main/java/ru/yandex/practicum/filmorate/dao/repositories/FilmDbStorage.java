@@ -370,32 +370,100 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getCommonFilms(Long userId, Long friendId) {
-        final String FIND_COMMON_FILMS = """
-            WITH common_films AS (
-                SELECT DISTINCT f.*, 
-                       mr.name AS mpa_rating_name,
-                    (SELECT COUNT(*) FROM film_like WHERE film_id = f.id) as total_likes
-                FROM films f
-                LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
-                WHERE EXISTS (
-                    SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
-                )
-                AND EXISTS (
-                    SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
-                )
-            )
-            SELECT cf.*,
-                fg.genre_id,
-                g.name AS genre_name
-            FROM common_films cf
-            LEFT JOIN film_genre fg ON cf.id = fg.film_id
-            LEFT JOIN genres g ON fg.genre_id = g.genre_id
-            ORDER BY cf.total_likes DESC, cf.id, fg.genre_id;
+        final String FIND_COMMON_FILMS_WITHOUT_GENRES = """
+        SELECT
+            f.id,
+            f.name,
+            f.description,
+            f.release_date,
+            f.duration,
+            f.mpa_rating_id,
+            mr.name AS mpa_rating_name,
+            (SELECT COUNT(*) FROM film_like WHERE film_id = f.id) AS total_likes
+        FROM films f
+        LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+        WHERE EXISTS (
+            SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
+        )
+        AND EXISTS (
+            SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
+        )
+        ORDER BY total_likes DESC, f.id;
         """;
+
+        final String FIND_GENRES_FOR_FILMS = """
+        SELECT 
+            fg.film_id,
+            g.genre_id,
+            g.name AS genre_name
+        FROM film_genre fg
+        JOIN genres g ON fg.genre_id = g.genre_id
+        WHERE fg.film_id IN (
+            SELECT f.id
+            FROM films f
+            WHERE EXISTS (
+                SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
+            )
+            AND EXISTS (
+                SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
+            )
+        )
+        ORDER BY fg.film_id, g.genre_id;
+        """;
+
         try {
-           return jdbc.query(FIND_COMMON_FILMS, mapper, userId, friendId);
+            List<Film> commonFilmsWithoutGenres = jdbc.query(
+                    FIND_COMMON_FILMS_WITHOUT_GENRES,
+                    mapper,
+                    userId, friendId
+            );
+
+            if (commonFilmsWithoutGenres.isEmpty()) {
+                return List.of();
+            }
+
+            Map<Long, Set<Genre>> filmGenresMap = jdbc.query(
+                    FIND_GENRES_FOR_FILMS,
+                    new ResultSetExtractor<Map<Long, Set<Genre>>>() {
+                        @Override
+                        public Map<Long, Set<Genre>> extractData(ResultSet rs) throws SQLException {
+                            Map<Long, Set<Genre>> result = new HashMap<>();
+                            while (rs.next()) {
+                                Long filmId = rs.getLong("film_id");
+                                Genre genre = new Genre(
+                                        rs.getInt("genre_id"),
+                                        rs.getString("genre_name")
+                                );
+                                result.computeIfAbsent(filmId, k -> new LinkedHashSet<>()).add(genre);
+                            }
+                            return result;
+                        }
+                    },
+                    userId, friendId
+            );
+
+            List<Film> result = new ArrayList<>();
+            for (Film filmWithoutGenres : commonFilmsWithoutGenres) {
+                Set<Genre> genres = filmGenresMap.getOrDefault(
+                        filmWithoutGenres.getId(),
+                        new LinkedHashSet<>()
+                );
+
+                Film fullFilm = new Film(
+                        filmWithoutGenres.getId(),
+                        filmWithoutGenres.getName(),
+                        filmWithoutGenres.getDescription(),
+                        filmWithoutGenres.getReleaseDate(),
+                        filmWithoutGenres.getDuration(),
+                        genres,
+                        filmWithoutGenres.getMpa()
+                );
+                result.add(fullFilm);
+            }
+            return result;
+
         } catch (RuntimeException e) {
-            log.error("произошла ошибка при чтение из базы данных - поиск общих фильмов" );
+            log.error("Произошла ошибка при чтении из базы данных - поиск общих фильмов", e);
             return List.of();
         }
     }
