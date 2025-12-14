@@ -18,7 +18,10 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Rating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 
 @Slf4j
@@ -282,64 +285,6 @@ public class FilmDbStorage implements FilmStorage {
                 WHERE fg.film_id IN (%s);
                 """;
 
-        // Создаем строку с плейсхолдерами
-        String placeholders = String.join(",", Collections.nCopies(filmIds.size(), "?"));
-
-        List<Film> films = jdbc.query(
-                String.format(FIND_FILMS_BY_IDS_QUERY, placeholders),
-                mapper,
-                filmIds.toArray()
-        );
-
-        if (films.isEmpty()) {
-            return List.of();
-        }
-
-        Map<Long, Set<Genre>> filmsGenres = jdbc.query(
-                String.format(FIND_GENRES_FOR_FILMS_QUERY, placeholders),
-                new FilmsIdsWithGenresExtractor(),
-                filmIds.toArray()
-        );
-
-        List<Film> result = new ArrayList<>();
-        for (Film film : films) {
-            Set<Genre> genres = filmsGenres.getOrDefault(film.getId(), new LinkedHashSet<>());
-            Film filmWithGenres = new Film(
-                    film.getId(),
-                    film.getName(),
-                    film.getDescription(),
-                    film.getReleaseDate(),
-                    film.getDuration(),
-                    genres,
-                    film.getMpa()
-            );
-            result.add(filmWithGenres);
-        }
-
-        return result;
-    }
-
-
-    @Override
-    public List<Film> getFilmsByIds(List<Long> filmIds) {
-        if (filmIds == null || filmIds.isEmpty()) {
-            return List.of();
-        }
-
-        final String FIND_FILMS_BY_IDS_QUERY = """
-                SELECT f.*, mr.name AS mpa_rating_name
-                FROM films AS f
-                LEFT OUTER JOIN mpa_rating AS mr ON f.mpa_rating_id = mr.mpa_rating_id
-                WHERE f.id IN (%s);
-                """;
-
-        final String FIND_GENRES_FOR_FILMS_QUERY = """
-                SELECT fg.film_id, fg.genre_id, g.name AS genre_name
-                FROM film_genre AS fg
-                LEFT OUTER JOIN genres AS g ON fg.genre_id = g.genre_id
-                WHERE fg.film_id IN (%s);
-                """;
-
         String placeholders = String.join(",", Collections.nCopies(filmIds.size(), "?"));
 
         List<Film> films = jdbc.query(String.format(FIND_FILMS_BY_IDS_QUERY, placeholders), mapper, filmIds.toArray());
@@ -366,59 +311,124 @@ public class FilmDbStorage implements FilmStorage {
 
         if ("likes".equals(sortBy)) {
             sql = """
-            SELECT f.*, mr.name AS mpa_rating_name
-            FROM films f
-            JOIN film_directors fd ON f.id = fd.film_id
-            LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
-            LEFT JOIN film_like fl ON f.id = fl.film_id
-            WHERE fd.director_id = ?
-            GROUP BY f.id, mr.name
-            ORDER BY COUNT(fl.user_id) DESC
-        """;
+                        SELECT f.*, mr.name AS mpa_rating_name
+                        FROM films f
+                        JOIN film_directors fd ON f.id = fd.film_id
+                        LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+                        LEFT JOIN film_like fl ON f.id = fl.film_id
+                        WHERE fd.director_id = ?
+                        GROUP BY f.id, mr.name
+                        ORDER BY COUNT(fl.user_id) DESC
+                    """;
         } else if ("year".equals(sortBy)) {
             sql = """
-            SELECT f.*, mr.name AS mpa_rating_name
-            FROM films f
-            JOIN film_directors fd ON f.id = fd.film_id
-            LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
-            WHERE fd.director_id = ?
-            ORDER BY f.release_date
-        """;
+                        SELECT f.*, mr.name AS mpa_rating_name
+                        FROM films f
+                        JOIN film_directors fd ON f.id = fd.film_id
+                        LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+                        WHERE fd.director_id = ?
+                        ORDER BY f.release_date
+                    """;
         } else {
             throw new ValidationException("Неверный параметр сортировки: " + sortBy);
         }
 
         final String genresQuery = """
-        SELECT fg.film_id, fg.genre_id, g.name AS genre_name
-        FROM film_genre fg
-        JOIN genres g ON fg.genre_id = g.genre_id
-        WHERE fg.film_id IN (
-            SELECT film_id FROM film_directors WHERE director_id = ?
-        )
-    """;
+                    SELECT fg.film_id, fg.genre_id, g.name AS genre_name
+                    FROM film_genre fg
+                    JOIN genres g ON fg.genre_id = g.genre_id
+                    WHERE fg.film_id IN (
+                        SELECT film_id FROM film_directors WHERE director_id = ?
+                    )
+                """;
 
         List<Film> films = jdbc.query(sql, mapper, directorId);
         if (films.isEmpty()) {
             return List.of();
         }
 
-        Map<Long, Set<Genre>> filmsGenres =
-                jdbc.query(genresQuery, new FilmsIdsWithGenresExtractor(), directorId);
+        Map<Long, Set<Genre>> filmsGenres = jdbc.query(genresQuery, new FilmsIdsWithGenresExtractor(), directorId);
 
-        return films.stream()
-                .map(f -> new Film(
-                        f.getId(),
-                        f.getName(),
-                        f.getDescription(),
-                        f.getReleaseDate(),
-                        f.getDuration(),
-                        filmsGenres.getOrDefault(f.getId(), new LinkedHashSet<>()),
-                        f.getMpa(),
-                        f.getDirectors()
-                ))
-                .toList();
+        return films.stream().map(f -> new Film(f.getId(), f.getName(), f.getDescription(), f.getReleaseDate(), f.getDuration(), filmsGenres.getOrDefault(f.getId(), new LinkedHashSet<>()), f.getMpa(), f.getDirectors())).toList();
     }
 
+    @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        final String FIND_COMMON_FILMS_WITHOUT_GENRES = """
+                SELECT
+                    f.id,
+                    f.name,
+                    f.description,
+                    f.release_date,
+                    f.duration,
+                    f.mpa_rating_id,
+                    mr.name AS mpa_rating_name,
+                    (SELECT COUNT(*) FROM film_like WHERE film_id = f.id) AS total_likes
+                FROM films f
+                LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+                WHERE EXISTS (
+                    SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
+                )
+                AND EXISTS (
+                    SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
+                )
+                ORDER BY total_likes DESC, f.id;
+                """;
+
+        final String FIND_GENRES_FOR_FILMS = """
+                SELECT fg.film_id,
+                    g.genre_id,
+                    g.name AS genre_name
+                FROM film_genre fg
+                JOIN genres g ON fg.genre_id = g.genre_id
+                WHERE fg.film_id IN (
+                    SELECT f.id
+                    FROM films f
+                    WHERE EXISTS (
+                        SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
+                    )
+                    AND EXISTS (
+                        SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
+                    )
+                )
+                ORDER BY fg.film_id, g.genre_id;
+                """;
+
+        try {
+            List<Film> commonFilmsWithoutGenres = jdbc.query(FIND_COMMON_FILMS_WITHOUT_GENRES, mapper, userId, friendId);
+
+            if (commonFilmsWithoutGenres.isEmpty()) {
+                return List.of();
+            }
+
+            Map<Long, Set<Genre>> filmGenresMap = jdbc.query(FIND_GENRES_FOR_FILMS, new ResultSetExtractor<Map<Long, Set<Genre>>>() {
+                @Override
+                public Map<Long, Set<Genre>> extractData(ResultSet rs) throws SQLException {
+                    Map<Long, Set<Genre>> result = new HashMap<>();
+                    while (rs.next()) {
+                        Long filmId = rs.getLong("film_id");
+                        Genre genre = new Genre(rs.getInt("genre_id"), rs.getString("genre_name"));
+                        result.computeIfAbsent(filmId, k -> new LinkedHashSet<>()).add(genre);
+                    }
+                    return result;
+                }
+            }, userId, friendId);
+
+            List<Film> result = new ArrayList<>();
+            for (Film filmWithoutGenres : commonFilmsWithoutGenres) {
+                Set<Director> directors = new HashSet<>();
+                Set<Genre> genres = filmGenresMap.getOrDefault(filmWithoutGenres.getId(), new LinkedHashSet<>());
+
+                Film fullFilm = new Film(filmWithoutGenres.getId(), filmWithoutGenres.getName(), filmWithoutGenres.getDescription(), filmWithoutGenres.getReleaseDate(), filmWithoutGenres.getDuration(), genres, filmWithoutGenres.getMpa(), directors);
+                result.add(fullFilm);
+            }
+            return result;
+
+        } catch (RuntimeException e) {
+            log.error("Произошла ошибка при чтении из базы данных - поиск общих фильмов", e);
+            return List.of();
+        }
+    }
 
     private static class FilmWithRatingAndGenresExtractor implements ResultSetExtractor<Optional<Film>> {
 
@@ -470,105 +480,6 @@ public class FilmDbStorage implements FilmStorage {
                 }
             }
             return data;
-        }
-    }
-
-    @Override
-    public List<Film> getCommonFilms(Long userId, Long friendId) {
-        final String FIND_COMMON_FILMS_WITHOUT_GENRES = """
-        SELECT
-            f.id,
-            f.name,
-            f.description,
-            f.release_date,
-            f.duration,
-            f.mpa_rating_id,
-            mr.name AS mpa_rating_name,
-            (SELECT COUNT(*) FROM film_like WHERE film_id = f.id) AS total_likes
-        FROM films f
-        LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
-        WHERE EXISTS (
-            SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
-        )
-        AND EXISTS (
-            SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
-        )
-        ORDER BY total_likes DESC, f.id;
-        """;
-
-        final String FIND_GENRES_FOR_FILMS = """
-        SELECT fg.film_id,
-            g.genre_id,
-            g.name AS genre_name
-        FROM film_genre fg
-        JOIN genres g ON fg.genre_id = g.genre_id
-        WHERE fg.film_id IN (
-            SELECT f.id
-            FROM films f
-            WHERE EXISTS (
-                SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
-            )
-            AND EXISTS (
-                SELECT 1 FROM film_like WHERE film_id = f.id AND user_id = ?
-            )
-        )
-        ORDER BY fg.film_id, g.genre_id;
-        """;
-
-        try {
-            List<Film> commonFilmsWithoutGenres = jdbc.query(
-                    FIND_COMMON_FILMS_WITHOUT_GENRES,
-                    mapper,
-                    userId, friendId
-            );
-
-            if (commonFilmsWithoutGenres.isEmpty()) {
-                return List.of();
-            }
-
-            Map<Long, Set<Genre>> filmGenresMap = jdbc.query(
-                    FIND_GENRES_FOR_FILMS,
-                    new ResultSetExtractor<Map<Long, Set<Genre>>>() {
-                        @Override
-                        public Map<Long, Set<Genre>> extractData(ResultSet rs) throws SQLException {
-                            Map<Long, Set<Genre>> result = new HashMap<>();
-                            while (rs.next()) {
-                                Long filmId = rs.getLong("film_id");
-                                Genre genre = new Genre(
-                                        rs.getInt("genre_id"),
-                                        rs.getString("genre_name")
-                                );
-                                result.computeIfAbsent(filmId, k -> new LinkedHashSet<>()).add(genre);
-                            }
-                            return result;
-                        }
-                    },
-                    userId, friendId
-            );
-
-            List<Film> result = new ArrayList<>();
-            for (Film filmWithoutGenres : commonFilmsWithoutGenres) {
-                Set<Genre> genres = filmGenresMap.getOrDefault(
-                        filmWithoutGenres.getId(),
-                        new LinkedHashSet<>()
-                );
-
-                Film fullFilm = new Film(
-                        filmWithoutGenres.getId(),
-                        filmWithoutGenres.getName(),
-                        filmWithoutGenres.getDescription(),
-                        filmWithoutGenres.getReleaseDate(),
-                        filmWithoutGenres.getDuration(),
-                        genres,
-                        filmWithoutGenres.getMpa()
-                );
-                result.add(fullFilm);
-            }
-            return result;
-
-        } catch (RuntimeException e) {
-            log.error("Произошла ошибка при чтении из базы данных - поиск общих фильмов", e);
-            return List.of();
         }
     }
 }

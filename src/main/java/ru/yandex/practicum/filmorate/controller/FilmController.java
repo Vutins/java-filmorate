@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -81,10 +80,7 @@ public class FilmController {
     }
 
     @GetMapping("/director/{directorId}")
-    public List<Film> getFilmsByDirector(
-            @PathVariable Long directorId,
-            @RequestParam(required = false, defaultValue = "likes") String sortBy
-    ) {
+    public List<Film> getFilmsByDirector(@PathVariable Long directorId, @RequestParam(required = false, defaultValue = "likes") String sortBy) {
         if (!sortBy.equals("year") && !sortBy.equals("likes")) {
             throw new ValidationException("должно быть либо 'year' либо 'likes'");
         }
@@ -96,6 +92,6 @@ public class FilmController {
     @GetMapping("/common")
     public List<Film> getCommonFilms(@RequestParam Long userId, @RequestParam Long friendId) {
         log.info("запрос на получения списка общих фильмов");
-        return filmService.getCommonFilms(userId,friendId);
+        return filmService.getCommonFilms(userId, friendId);
     }
 }

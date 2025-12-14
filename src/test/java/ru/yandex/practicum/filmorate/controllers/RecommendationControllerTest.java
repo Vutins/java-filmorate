@@ -53,13 +53,13 @@ public class RecommendationControllerTest {
         Rating mpa = new Rating(1, "G");
 
         Film film1 = new Film(0L, "Film 1", "Description 1", LocalDate.of(2000, 1, 1), 120,
-                Collections.unmodifiableSequencedSet(new LinkedHashSet<>()), mpa);
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>()), mpa, Collections.emptySet());
         Film film2 = new Film(0L, "Film 2", "Description 2", LocalDate.of(2001, 1, 1), 130,
-                Collections.unmodifiableSequencedSet(new LinkedHashSet<>()), mpa);
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>()), mpa, Collections.emptySet());
         Film film3 = new Film(0L, "Film 3", "Description 3", LocalDate.of(2002, 1, 1), 140,
-                Collections.unmodifiableSequencedSet(new LinkedHashSet<>()), mpa);
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>()), mpa, Collections.emptySet());
         Film film4 = new Film(0L, "Film 4", "Description 4", LocalDate.of(2003, 1, 1), 150,
-                Collections.unmodifiableSequencedSet(new LinkedHashSet<>()), mpa);
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>()), mpa, Collections.emptySet());
 
         filmDbStorage.create(film1);
         filmDbStorage.create(film2);
