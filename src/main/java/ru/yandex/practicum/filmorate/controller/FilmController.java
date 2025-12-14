@@ -22,6 +22,13 @@ public class FilmController {
         this.filmService = filmService;
     }
 
+    @DeleteMapping("/{filmId}")
+    @ResponseStatus(HttpStatus.OK)
+    public void delete(@PathVariable Long filmId) {
+        log.info("Запрос на удаление фильма ID {}", filmId);
+        filmService.delete(filmId);
+    }
+
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<Film> getAllFilms() {

@@ -7,6 +7,8 @@ import java.util.Set;
 
 public interface UserStorage {
 
+    boolean delete(Long userId);
+
     List<User> getAllUsers();
 
     User getUserById(Long userId);

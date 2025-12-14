@@ -28,6 +28,16 @@ public class UserDbStorage implements UserStorage {
         this.mapper = mapper;
     }
 
+    @Override
+    public boolean delete(Long userId) {
+        final String DELETE_USER_QUERY = """
+                DELETE
+                FROM users
+                WHERE id = ?;
+                """;
+        return jdbc.update(DELETE_USER_QUERY, userId) > 0;
+    }
+
     public User getUserById(Long id) {
         final String FIND_USER_BY_ID_QUERY = """
                 SELECT *

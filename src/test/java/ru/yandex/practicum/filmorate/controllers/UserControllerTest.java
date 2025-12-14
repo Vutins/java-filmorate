@@ -13,9 +13,7 @@ import ru.yandex.practicum.filmorate.dao.repositories.UserDbStorage;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,6 +36,28 @@ public class UserControllerTest {
                 LocalDate.of(1990, 1, 1)
         );
         userDbStorage.create(user);
+    }
+
+    @Test
+    @DirtiesContext
+    public void testDeleteUser() {
+        // given
+        User user = new User(
+                0L,
+                "Deletable",
+                "delete@user.com",
+                "login",
+                LocalDate.of(1990, 1, 1)
+        );
+        User createdUser = userDbStorage.create(user);
+        Long userId = createdUser.getId();
+        User retrievedBeforeDelete = userDbStorage.getUserById(userId);
+        assertNotNull(retrievedBeforeDelete);
+        assertThat(retrievedBeforeDelete.getId()).isEqualTo(userId);
+        // when
+        boolean deleteResult = userDbStorage.delete(userId);
+        // then
+        assertTrue(deleteResult);
     }
 
     @Test
