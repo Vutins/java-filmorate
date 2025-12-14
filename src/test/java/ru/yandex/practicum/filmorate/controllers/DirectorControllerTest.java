@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import({DirectorDbStorage.class, DirectorRowMapper.class})
 public class DirectorControllerTest {
     @Autowired
-    final private DirectorDbStorage directorDbStorage;
+    private DirectorDbStorage directorDbStorage;
 
     private Director director;
     private Director director2;
