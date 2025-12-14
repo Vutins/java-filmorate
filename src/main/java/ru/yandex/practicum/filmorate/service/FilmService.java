@@ -26,6 +26,32 @@ public class FilmService {
         this.userStorage = userStorage;
     }
 
+    public void delete(Long filmId) {
+        String message;
+
+        if (filmId == null || filmId < 1) {
+             message = String.format(
+                     "%s : Попытка удалить фильм по ID = %s",
+                    PROGRAM_LEVEL, String.valueOf(filmId)
+             );
+            log.warn(message);
+            throw new ValidationException(message);
+        }
+
+        if (filmStorage.delete(filmId) == false) {
+            message = String.format(
+                    "%s : Фильм с ID = %s не найден в приложении",
+                    PROGRAM_LEVEL, String.valueOf(filmId));
+            log.warn(message);
+            throw new NotFoundException(message);
+        }
+
+        message = String.format(
+                "%s : Фильм ID %s успешно удален",
+                PROGRAM_LEVEL, String.valueOf(filmId));
+        log.info(message);
+    }
+
     public List<Film> getAllFilms() {
         return List.copyOf(filmStorage.getAllFilms());
     }

@@ -7,6 +7,8 @@ import java.util.Set;
 
 public interface UserStorage {
 
+    boolean delete(Long userId);
+
     List<User> getAllUsers();
 
     User getUserById(Long userId);
@@ -26,4 +28,5 @@ public interface UserStorage {
     void removeFriend(Long userId, Long friendId);
 
     boolean validUserId(Long userId);
+    List<Long> getLikedFilmsByUserId(Long userId);
 }

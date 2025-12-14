@@ -66,6 +66,31 @@ public class FilmControllerTest {
 
     @Test
     @DirtiesContext
+    public void testDeleteFilm() {
+        // given
+        Film film = new Film(
+                0L,
+                "Deletable",
+                "Description",
+                LocalDate.of(2005, 1, 1),
+                90,
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>()),
+                new Rating(1, "G")
+        );
+        Film createdFilm = filmDbStorage.create(film);
+        Long filmId = createdFilm.getId();
+        Film retrievedBeforeDelete = filmDbStorage.getFilmById(filmId);
+        assertNotNull(retrievedBeforeDelete);
+        assertThat(retrievedBeforeDelete.getId()).isEqualTo(filmId);
+        // when
+        boolean deleteResult = filmDbStorage.delete(filmId);
+        // then
+        assertTrue(deleteResult);
+    }
+
+
+    @Test
+    @DirtiesContext
     public void testFindFilmById() {
         Film film = filmDbStorage.getFilmById(1L);
         assertThat(film).hasFieldOrPropertyWithValue("id", 1L);

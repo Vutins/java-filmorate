@@ -5,8 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.List;
 
@@ -20,6 +21,13 @@ public class UserController {
     @Autowired
     public UserController(UserService userService) {
         this.userService = userService;
+    }
+
+    @DeleteMapping("/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public void delete(@PathVariable Long userId) {
+        log.info("Запрос на удаление пользователя ID {}", userId);
+        userService.delete(userId);
     }
 
     @GetMapping
@@ -52,7 +60,7 @@ public class UserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.OK)
-    public User create(@Valid  @RequestBody User user) {
+    public User create(@Valid @RequestBody User user) {
         log.info("Запрос на добавление пользователя в приложение");
         return userService.create(user);
     }
@@ -76,5 +84,12 @@ public class UserController {
     public void removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
         log.info("Запрос на удаление пользователя из списка друзей");
         userService.removeFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/recommendations")
+    @ResponseStatus(HttpStatus.OK)
+    public List<Film> getRecommendations(@PathVariable Long id) {
+        log.info("Запрос на получение рекомендаций для пользователя с ID {}", id);
+        return userService.getRecommendations(id);
     }
 }
