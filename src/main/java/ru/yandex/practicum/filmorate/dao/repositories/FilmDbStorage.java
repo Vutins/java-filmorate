@@ -3,7 +3,10 @@ package ru.yandex.practicum.filmorate.dao.repositories;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.*;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcOperations;
+import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.InternalServerException;
@@ -23,9 +26,9 @@ import java.util.*;
 @Repository
 public class FilmDbStorage implements FilmStorage {
 
+    private static final String PROGRAM_LEVEL = "FilmDbStorage";
     private final JdbcOperations jdbc;
     private final RowMapper<Film> mapper;
-    private static final String PROGRAM_LEVEL = "FilmDbStorage";
 
     @Autowired
     public FilmDbStorage(final JdbcOperations jdbc, final RowMapper<Film> mapper) {
@@ -260,25 +263,25 @@ public class FilmDbStorage implements FilmStorage {
         int actualLimit = (totalFilms != null && totalFilms < limit) ? totalFilms : limit;
 
         final String FIND_FILMS_WITH_MPA_RATING_SORTED_BY_LIKES_LIMITED_QUERY = """
-        SELECT f.*, mr.name AS mpa_rating_name
-        FROM films AS f
-        LEFT OUTER JOIN mpa_rating AS mr ON f.mpa_rating_id = mr.mpa_rating_id
-        LEFT OUTER JOIN film_like AS fl ON f.id = fl.film_id
-        GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, mr.name
-        ORDER BY COUNT(fl.user_id) DESC
-        LIMIT ?;
-        """;
+                SELECT f.*, mr.name AS mpa_rating_name
+                FROM films AS f
+                LEFT OUTER JOIN mpa_rating AS mr ON f.mpa_rating_id = mr.mpa_rating_id
+                LEFT OUTER JOIN film_like AS fl ON f.id = fl.film_id
+                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, mr.name
+                ORDER BY COUNT(fl.user_id) DESC
+                LIMIT ?;
+                """;
 
         final String FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY = """
-        SELECT f.id AS film_id, fg.genre_id, g.name AS genre_name
-        FROM films AS f
-        LEFT OUTER JOIN film_like AS fl ON f.id = fl.film_id
-        LEFT OUTER JOIN film_genre AS fg ON f.id = fg.film_id
-        LEFT OUTER JOIN genres AS g ON fg.genre_id = g.genre_id
-        GROUP BY f.id, fg.genre_id, g.name
-        ORDER BY COUNT(fl.user_id) DESC, f.id
-        LIMIT ?;
-        """;
+                SELECT f.id AS film_id, fg.genre_id, g.name AS genre_name
+                FROM films AS f
+                LEFT OUTER JOIN film_like AS fl ON f.id = fl.film_id
+                LEFT OUTER JOIN film_genre AS fg ON f.id = fg.film_id
+                LEFT OUTER JOIN genres AS g ON fg.genre_id = g.genre_id
+                GROUP BY f.id, fg.genre_id, g.name
+                ORDER BY COUNT(fl.user_id) DESC, f.id
+                LIMIT ?;
+                """;
 
         try {
             List<Film> sortFilms = jdbc.query(FIND_FILMS_WITH_MPA_RATING_SORTED_BY_LIKES_LIMITED_QUERY, mapper, actualLimit);
@@ -308,6 +311,63 @@ public class FilmDbStorage implements FilmStorage {
             log.error("Ошибка при получении популярных фильмов: {}", e.getMessage());
             return List.of();
         }
+    }
+
+    @Override
+    public List<Film> getFilmsByIds(List<Long> filmIds) {
+        if (filmIds == null || filmIds.isEmpty()) {
+            return List.of();
+        }
+
+        final String FIND_FILMS_BY_IDS_QUERY = """
+                SELECT f.*, mr.name AS mpa_rating_name
+                FROM films AS f
+                LEFT OUTER JOIN mpa_rating AS mr ON f.mpa_rating_id = mr.mpa_rating_id
+                WHERE f.id IN (%s);
+                """;
+
+        final String FIND_GENRES_FOR_FILMS_QUERY = """
+                SELECT fg.film_id, fg.genre_id, g.name AS genre_name
+                FROM film_genre AS fg
+                LEFT OUTER JOIN genres AS g ON fg.genre_id = g.genre_id
+                WHERE fg.film_id IN (%s);
+                """;
+
+        // Создаем строку с плейсхолдерами
+        String placeholders = String.join(",", Collections.nCopies(filmIds.size(), "?"));
+
+        List<Film> films = jdbc.query(
+                String.format(FIND_FILMS_BY_IDS_QUERY, placeholders),
+                mapper,
+                filmIds.toArray()
+        );
+
+        if (films.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Set<Genre>> filmsGenres = jdbc.query(
+                String.format(FIND_GENRES_FOR_FILMS_QUERY, placeholders),
+                new FilmsIdsWithGenresExtractor(),
+                filmIds.toArray()
+        );
+
+        List<Film> result = new ArrayList<>();
+        for (Film film : films) {
+            Set<Genre> genres = filmsGenres.getOrDefault(film.getId(), new LinkedHashSet<>());
+            Film filmWithGenres = new Film(
+                    film.getId(),
+                    film.getName(),
+                    film.getDescription(),
+                    film.getReleaseDate(),
+                    film.getDuration(),
+                    genres,
+                    film.getMpa()
+            );
+            result.add(filmWithGenres);
+        }
+
+        return result;
     }
 
     private static class FilmWithRatingAndGenresExtractor implements ResultSetExtractor<Optional<Film>> {
