@@ -19,10 +19,15 @@ public class FilmRowMapper implements RowMapper<Film> {
         if (rs.wasNull()) {
             ratingId = null;
         }
-        Rating mpa = new Rating(
-                ratingId,
-                rs.getString("name")
-        );
+
+        String mpaName = rs.getString("mpa_rating_name");
+
+        if (mpaName == null) {
+            String filmName = rs.getString("name");
+            mpaName = "G";
+        }
+
+        Rating mpa = new Rating(ratingId, mpaName);
 
         return new Film(
                 rs.getLong("id"),

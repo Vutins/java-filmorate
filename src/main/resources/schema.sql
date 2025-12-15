@@ -72,3 +72,6 @@ CREATE TABLE IF NOT EXISTS user_friend (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE
 );
+--индексы для оптимизации поиска
+CREATE INDEX IF NOT EXISTS idx_films_name_lower ON films(LOWER(name));
+CREATE INDEX IF NOT EXISTS idx_directors_name_lower ON directors(LOWER(name));

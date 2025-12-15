@@ -151,4 +151,13 @@ public class DirectorDbStorage implements DirectorStorage {
 
         return result;
     }
+
+    public List<Director> searchDirectorsByName(String query) {
+        final String sql = """
+        SELECT * FROM directors
+        WHERE LOWER(name) LIKE ?
+        ORDER BY director_id ASC
+        """;
+        return jdbcTemplate.query(sql, directorRowMapper, "%" + query.toLowerCase() + "%");
+    }
 }
