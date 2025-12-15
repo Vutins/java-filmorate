@@ -19,10 +19,10 @@ public class Film {
     @Size(max = 200)
     private String description;
     @NotNull
-    @PastOrPresent(message = "Дата не может быть в будущем")
     private LocalDate releaseDate;
     @Positive
     private int duration;
     private Set<Genre> genres;
     private Rating mpa;
+    private Set<Director> directors;
 }

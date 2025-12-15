@@ -7,6 +7,7 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.model.enums.GenreValueList;
 import ru.yandex.practicum.filmorate.model.enums.RatingValueList;
+import ru.yandex.practicum.filmorate.storage.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.validation.ValidationTool;
@@ -19,11 +20,13 @@ public class FilmService {
 
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
+    private final DirectorStorage directorStorage;
     private static final String PROGRAM_LEVEL = "FilmService";
 
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
+    public FilmService(FilmStorage filmStorage, UserStorage userStorage,  DirectorStorage directorStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
+        this.directorStorage = directorStorage;
     }
 
     public void delete(Long filmId) {
@@ -53,7 +56,9 @@ public class FilmService {
     }
 
     public List<Film> getAllFilms() {
-        return List.copyOf(filmStorage.getAllFilms());
+        List<Film> allFilms = filmStorage.getAllFilms();
+        addProducersToFilms(allFilms);
+        return allFilms;
     }
 
     public Film getFilmById(Long id) {
@@ -62,6 +67,8 @@ public class FilmService {
             throw new ValidationException(PROGRAM_LEVEL + ": Фильм не может быть получен по ID = null");
         }
         Film film = filmStorage.getFilmById(id);
+        Set<Director> directors = directorStorage.getDirectorsByFilmId(id);
+        film.setDirectors(directors);
         log.info(PROGRAM_LEVEL + ": Объект Film успешно найден по ID");
         return film;
     }
@@ -106,9 +113,13 @@ public class FilmService {
                 film.getReleaseDate(),
                 film.getDuration(),
                 validGenresSet,
-                validFilmRating
+                validFilmRating,
+                film.getDirectors()
         );
-        return filmStorage.create(validFilm);
+        Film filmResult = filmStorage.create(validFilm);
+        validateDirectorExists(filmResult);
+        addDirectorToFilm(filmResult);
+        return filmResult;
     }
 
     public Film update(Film film) {
@@ -146,6 +157,10 @@ public class FilmService {
             }
         }
 
+        validateDirectorExists(film);
+        deleteDirectorsFromFilm(film);
+        addDirectorToFilm(film);
+
         Film validFilm = new Film(
                 film.getId(),
                 film.getName(),
@@ -153,7 +168,8 @@ public class FilmService {
                 film.getReleaseDate(),
                 film.getDuration(),
                 validGenresSet,
-                validFilmRating
+                validFilmRating,
+                film.getDirectors()
         );
         return filmStorage.update(validFilm);
     }
@@ -187,8 +203,64 @@ public class FilmService {
         if (limit <= 0) {
             return List.of();
         }
-        return List.copyOf(filmStorage.getTopFilms(limit));
+        List<Film> films = filmStorage.getTopFilms(limit);
+        addProducersToFilms(films);
+
+        return List.copyOf(films);
     }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        Optional<Director> director = directorStorage.getById(directorId);
+        if (!director.isPresent()) {
+            throw new NotFoundException("Режиссёр с id=" + directorId + " не найден");
+        }
+
+        List<Film> films = filmStorage.getFilmsByDirector(directorId, sortBy);
+        if (films.isEmpty()) {
+            return films;
+        }
+
+        addProducersToFilms(films);
+        return films;
+    }
+
+    private Film validateDirectorExists(Film film) {
+        if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
+            List<Director> directors = directorStorage.getAll().stream()
+                    .filter(director -> film.getDirectors().contains(director)).toList();
+            if (directors.isEmpty()) {
+                throw new NotFoundException("Такого режиссёра не существует");
+            }
+            film.setDirectors(new LinkedHashSet<>(directors));
+            return film;
+        }
+        return film;
+    }
+
+    private void addDirectorToFilm(Film film) {
+        if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
+            directorStorage.addDirectorToFilm(film);
+        }
+    }
+
+    private void deleteDirectorsFromFilm(Film film) {
+        if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
+            directorStorage.deleteDirectorsFromFilm(film.getId());
+        }
+    }
+
+    private void addProducersToFilms(List<Film> films) {
+        if (films != null && !films.isEmpty()) {
+            Map<Long, Set<Director>> directors = directorStorage.getAllDirectorsByFilm();
+
+            for (Film film : films) {
+                if (directors.containsKey(film.getId())) {
+                    film.setDirectors(directors.get(film.getId()));
+                }
+            }
+        }
+    }
+
 
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         if (!userStorage.validUserId(userId) || !userStorage.validUserId(friendId)) {

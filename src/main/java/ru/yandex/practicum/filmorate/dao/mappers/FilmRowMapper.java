@@ -31,7 +31,8 @@ public class FilmRowMapper implements RowMapper<Film> {
                 rs.getDate("release_date").toLocalDate(),
                 rs.getInt("duration"),
                 Collections.unmodifiableSequencedSet(new LinkedHashSet<>()),
-                mpa
+                mpa,
+                Collections.unmodifiableSequencedSet(new LinkedHashSet<>())
         );
     }
 }

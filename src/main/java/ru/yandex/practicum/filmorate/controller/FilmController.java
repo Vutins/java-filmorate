@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -78,10 +79,19 @@ public class FilmController {
         filmService.removeLike(id, userId);
     }
 
+    @GetMapping("/director/{directorId}")
+    public List<Film> getFilmsByDirector(@PathVariable Long directorId, @RequestParam(required = false, defaultValue = "likes") String sortBy) {
+        if (!sortBy.equals("year") && !sortBy.equals("likes")) {
+            throw new ValidationException("должно быть либо 'year' либо 'likes'");
+        }
+
+        return filmService.getFilmsByDirector(directorId, sortBy);
+    }
+
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/common")
     public List<Film> getCommonFilms(@RequestParam Long userId, @RequestParam Long friendId) {
         log.info("запрос на получения списка общих фильмов");
-        return filmService.getCommonFilms(userId,friendId);
+        return filmService.getCommonFilms(userId, friendId);
     }
 }
