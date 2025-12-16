@@ -82,7 +82,7 @@ public class ReviewService {
         log.info("Добавление {} от пользователя {} к отзыву {}",
                 reactionType, userId, reviewId);
 
-        validateUser(userId);
+        userService.validUserId(userId);
         validateReview(reviewId);
 
         reviewStorage.addReaction(reviewId, userId, isLike);
@@ -95,7 +95,7 @@ public class ReviewService {
         log.info("Удаление {} от пользователя {} у отзыва {}",
                 reactionType, userId, reviewId);
 
-        validateUser(userId);
+        userService.validUserId(userId);
         validateReview(reviewId);
 
         reviewStorage.removeReaction(reviewId, userId, isLike);
@@ -119,16 +119,7 @@ public class ReviewService {
         log.debug("Пользователь {} и фильм {} существуют", userId, filmId);
     }
 
-    private void validateUser(Long userId) {
-        log.debug("Проверка существования пользователя с ID: {}", userId);
 
-        if (userService.getUserById(userId) == null) {
-            log.error("Пользователь с ID {} не найден", userId);
-            throw new NotFoundException("Пользователь с ID " + userId + " не найден");
-        }
-
-        log.debug("Пользователь с ID: {} существует", userId);
-    }
 
     private void validateReview(Long reviewId) {
         log.debug("Проверка существования отзыва с ID: {}", reviewId);
