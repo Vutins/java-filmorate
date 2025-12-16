@@ -9,6 +9,7 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -93,5 +94,19 @@ public class FilmController {
     public List<Film> getCommonFilms(@RequestParam Long userId, @RequestParam Long friendId) {
         log.info("запрос на получения списка общих фильмов");
         return filmService.getCommonFilms(userId, friendId);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/search")
+    public List<Film> searchFilms(@RequestParam String query,
+                                  @RequestParam(defaultValue = "title,director") String by) {
+        log.info("Запрос на поиск фильмов по запросу: '{}', по полям: {}", query, by);
+
+        List<String> searchFields = Arrays.stream(by.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+
+        return filmService.searchFilms(query, searchFields);
     }
 }

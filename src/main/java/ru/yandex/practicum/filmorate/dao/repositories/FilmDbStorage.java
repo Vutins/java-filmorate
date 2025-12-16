@@ -311,35 +311,35 @@ public class FilmDbStorage implements FilmStorage {
 
         if ("likes".equals(sortBy)) {
             sql = """
-                        SELECT f.*, mr.name AS mpa_rating_name
-                        FROM films f
-                        JOIN film_directors fd ON f.id = fd.film_id
-                        LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
-                        LEFT JOIN film_like fl ON f.id = fl.film_id
-                        WHERE fd.director_id = ?
-                        GROUP BY f.id, mr.name
-                        ORDER BY COUNT(fl.user_id) DESC
+                    SELECT f.*, mr.name AS mpa_rating_name
+                    FROM films f
+                    JOIN film_directors fd ON f.id = fd.film_id
+                    LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+                    LEFT JOIN film_like fl ON f.id = fl.film_id
+                    WHERE fd.director_id = ?
+                    GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, mr.name
+                    ORDER BY COUNT(fl.user_id) DESC
                     """;
         } else if ("year".equals(sortBy)) {
             sql = """
-                        SELECT f.*, mr.name AS mpa_rating_name
-                        FROM films f
-                        JOIN film_directors fd ON f.id = fd.film_id
-                        LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
-                        WHERE fd.director_id = ?
-                        ORDER BY f.release_date
+                    SELECT f.*, mr.name AS mpa_rating_name
+                    FROM films f
+                    JOIN film_directors fd ON f.id = fd.film_id
+                    LEFT JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+                    WHERE fd.director_id = ?
+                    ORDER BY f.release_date
                     """;
         } else {
             throw new ValidationException("Неверный параметр сортировки: " + sortBy);
         }
 
         final String genresQuery = """
-                    SELECT fg.film_id, fg.genre_id, g.name AS genre_name
-                    FROM film_genre fg
-                    JOIN genres g ON fg.genre_id = g.genre_id
-                    WHERE fg.film_id IN (
-                        SELECT film_id FROM film_directors WHERE director_id = ?
-                    )
+                SELECT fg.film_id, fg.genre_id, g.name AS genre_name
+                FROM film_genre fg
+                JOIN genres g ON fg.genre_id = g.genre_id
+                WHERE fg.film_id IN (
+                    SELECT film_id FROM film_directors WHERE director_id = ?
+                )
                 """;
 
         List<Film> films = jdbc.query(sql, mapper, directorId);
@@ -428,6 +428,86 @@ public class FilmDbStorage implements FilmStorage {
             log.error("Произошла ошибка при чтении из базы данных - поиск общих фильмов", e);
             return List.of();
         }
+    }
+
+    @Override
+    public List<Film> searchFilms(String query, List<String> by) {
+        String searchQuery = query.toLowerCase();
+
+        List<String> conditions = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+
+        if (by.contains("title")) {
+            conditions.add("LOWER(f.name) LIKE ?");
+            params.add("%" + searchQuery + "%");
+        }
+
+        if (by.contains("director")) {
+            conditions.add("""
+                EXISTS (
+                    SELECT 1 FROM film_directors fd
+                    JOIN directors d ON fd.director_id = d.director_id
+                    WHERE fd.film_id = f.id AND LOWER(d.name) LIKE ?
+                )
+                """);
+            params.add("%" + searchQuery + "%");
+        }
+
+        if (conditions.isEmpty()) {
+            return List.of();
+        }
+
+        String whereClause = "(" + String.join(" OR ", conditions) + ")";
+
+        String sql = String.format("""
+            SELECT f.id, f.name, f.description, f.release_date, f.duration,
+                   f.mpa_rating_id, mr.name AS mpa_rating_name
+            FROM films f
+            LEFT OUTER JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+            WHERE %s
+            ORDER BY (
+                SELECT COUNT(*) FROM film_like fl WHERE fl.film_id = f.id
+            ) DESC, f.id
+            """, whereClause);
+
+        List<Film> films = jdbc.query(sql, mapper, params.toArray());
+
+        if (films.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> filmIds = films.stream().map(Film::getId).toList();
+        Map<Long, Set<Genre>> filmsGenres = getGenresForFilms(filmIds);
+
+        List<Film> result = new ArrayList<>();
+        for (Film film : films) {
+            Set<Genre> genres = filmsGenres.getOrDefault(film.getId(), new LinkedHashSet<>());
+            Film filmWithGenres = new Film(
+                    film.getId(), film.getName(), film.getDescription(),
+                    film.getReleaseDate(), film.getDuration(), genres,
+                    film.getMpa(), film.getDirectors()
+            );
+            result.add(filmWithGenres);
+        }
+        return result;
+    }
+
+    private Map<Long, Set<Genre>> getGenresForFilms(List<Long> filmIds) {
+        if (filmIds.isEmpty()) {
+            return Map.of();
+        }
+
+        final String FIND_GENRES_FOR_FILMS_QUERY = """
+            SELECT fg.film_id, fg.genre_id, g.name AS genre_name
+            FROM film_genre fg
+            LEFT JOIN genres g ON fg.genre_id = g.genre_id
+            WHERE fg.film_id IN (%s)
+            ORDER BY fg.film_id, g.genre_id
+            """;
+
+        String placeholders = String.join(",", Collections.nCopies(filmIds.size(), "?"));
+        return jdbc.query(String.format(FIND_GENRES_FOR_FILMS_QUERY, placeholders),
+                new FilmsIdsWithGenresExtractor(), filmIds.toArray());
     }
 
     private static class FilmWithRatingAndGenresExtractor implements ResultSetExtractor<Optional<Film>> {

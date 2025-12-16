@@ -268,4 +268,30 @@ public class FilmService {
         }
         return filmStorage.getCommonFilms(userId, friendId);
     }
+
+    public List<Film> searchFilms(String query, List<String> by) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        if (by == null || by.isEmpty()) {
+            by = List.of("title", "director");
+        }
+
+        // Проверяем валидность параметра by
+        List<String> validByValues = new ArrayList<>();
+        for (String searchType : by) {
+            if ("title".equals(searchType) || "director".equals(searchType)) {
+                validByValues.add(searchType);
+            }
+        }
+
+        if (validByValues.isEmpty()) {
+            validByValues = List.of("title", "director");
+        }
+
+        List<Film> films = filmStorage.searchFilms(query, validByValues);
+        addProducersToFilms(films);
+        return films;
+    }
 }
