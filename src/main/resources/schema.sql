@@ -75,3 +75,20 @@ CREATE TABLE IF NOT EXISTS user_friend (
 --индексы для оптимизации поиска
 CREATE INDEX IF NOT EXISTS idx_films_name_lower ON films(LOWER(name));
 CREATE INDEX IF NOT EXISTS idx_directors_name_lower ON directors(LOWER(name));
+
+CREATE TABLE IF NOT EXISTS reviews (
+    review_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    content TEXT NOT NULL,
+    is_positive BOOLEAN NOT NULL,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    film_id BIGINT NOT NULL REFERENCES films(id) ON DELETE CASCADE,
+    useful INT DEFAULT 0
+);
+
+-- Таблица связи отзывов и пользователей
+CREATE TABLE IF NOT EXISTS review_reactions (
+    review_id BIGINT NOT NULL REFERENCES reviews(review_id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    is_like BOOLEAN NOT NULL,
+    PRIMARY KEY (review_id, user_id)
+);
