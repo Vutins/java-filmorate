@@ -15,9 +15,7 @@ import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.ReviewStorage;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -65,7 +63,7 @@ public class ReviewDbStorage implements ReviewStorage {
                         new String[]{"review_id"}
                 );
                 ps.setString(1, review.getContent());
-                ps.setBoolean(2, review.isPositive());
+                ps.setBoolean(2, review.getIsPositive());
                 ps.setLong(3, review.getUserId());
                 ps.setLong(4, review.getFilmId());
                 return ps;
@@ -103,7 +101,7 @@ public class ReviewDbStorage implements ReviewStorage {
         int rowsUpdated = jdbcTemplate.update(
                 UPDATE_QUERY,
                 review.getContent(),
-                review.isPositive(),
+                review.getIsPositive(),
                 review.getId()
         );
 
