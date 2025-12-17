@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.ReviewStorage;
 
@@ -19,14 +20,16 @@ public class ReviewService {
     private final FilmService filmService;
 
     public Review create(Review review) {
-        log.info("Создание нового отзыва пользователем {} для фильма {}",
-                review.getUserId(), review.getFilmId());
+        log.info("Создание нового отзыва: {}", review);
+
+        if (review.getIsPositive() == null) {
+            log.error("Поле isPositive не может быть null");
+            throw new ValidationException("Поле isPositive обязательно");
+        }
 
         validateUserAndFilm(review.getUserId(), review.getFilmId());
-
         Review createdReview = reviewStorage.create(review);
-        log.info("Отзыв успешно создан с ID: {}, полезность: {}",
-                createdReview.getId(), createdReview.getUseful());
+        log.info("Отзыв успешно создан с ID: {}", createdReview.getId());
 
         return createdReview;
     }
@@ -82,8 +85,6 @@ public class ReviewService {
         log.info("Добавление {} от пользователя {} к отзыву {}",
                 reactionType, userId, reviewId);
 
-        userService.validUserId(userId);
-
         if (!userService.validUserId(userId)) {
             log.error("Пользователь с ID {} не найден", userId);
             throw new NotFoundException("Пользователь с ID " + userId + " не найден");
@@ -123,8 +124,6 @@ public class ReviewService {
 
         log.debug("Пользователь {} и фильм {} существуют", userId, filmId);
     }
-
-
 
     private void validateReview(Long reviewId) {
         log.debug("Проверка существования отзыва с ID: {}", reviewId);
