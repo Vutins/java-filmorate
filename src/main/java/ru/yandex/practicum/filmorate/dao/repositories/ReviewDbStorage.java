@@ -2,11 +2,14 @@ package ru.yandex.practicum.filmorate.dao.repositories;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.mappers.ReviewRowMapper;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ReviewAlreadyExistsException;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.ReviewStorage;
@@ -26,43 +29,89 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public Review create(Review review) {
-        final String ADD_QUERY  = """
+        log.info("Создание отзыва в БД: {}", review);
+
+        final String CHECK_EXISTS_QUERY = """
+            SELECT COUNT(*) FROM reviews 
+            WHERE user_id = ? AND film_id = ?
+        """;
+
+        Integer count = jdbcTemplate.queryForObject(
+                CHECK_EXISTS_QUERY,
+                Integer.class,
+                review.getUserId(),
+                review.getFilmId()
+        );
+
+        if (count != null && count > 0) {
+            log.error("Пользователь {} уже оставлял отзыв фильму {}",
+                    review.getUserId(), review.getFilmId());
+            throw new ReviewAlreadyExistsException(
+                    "Пользователь уже оставлял отзыв этому фильму."
+            );
+        }
+
+        final String ADD_QUERY = """
             INSERT INTO reviews (content, is_positive, user_id, film_id)
-            VALUES (?, ?, ?, ?) RETURNING review_id
+            VALUES (?, ?, ?, ?)
         """;
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
-        jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(ADD_QUERY, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, review.getContent());
-            ps.setBoolean(2, review.isPositive());
-            ps.setLong(3, review.getUserId());
-            ps.setLong(4, review.getFilmId());
-            return ps;
-        }, keyHolder);
+        try {
+            jdbcTemplate.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(
+                        ADD_QUERY,
+                        new String[]{"review_id"}
+                );
+                ps.setString(1, review.getContent());
+                ps.setBoolean(2, review.isPositive());
+                ps.setLong(3, review.getUserId());
+                ps.setLong(4, review.getFilmId());
+                return ps;
+            }, keyHolder);
 
-        Map<String, Object> keys = keyHolder.getKeys();
-        if (keys != null && keys.containsKey("review_id")) {
-            review.setId(((Number) keys.get("review_id")).longValue());
-        } else {
+            Number key = keyHolder.getKey();
+            if (key != null) {
+                review.setId(key.longValue());
+                log.info("Отзыв создан с ID: {}", review.getId());
+            } else {
+                throw new RuntimeException("Не удалось получить ID созданного отзыва");
+            }
+
+        } catch (DuplicateKeyException e) {
+            log.error("Нарушение уникальности при создании отзыва: {}", e.getMessage());
             throw new ReviewAlreadyExistsException("Пользователь уже оставлял отзыв этому фильму.");
+        } catch (DataAccessException e) {
+            log.error("Ошибка доступа к данным при создании отзыва: {}", e.getMessage());
+            throw e;
         }
-
         return review;
     }
 
     @Override
     public Review update(Review review) {
+        log.info("Обновление отзыва с ID {} в БД", review.getId());
+
         final String UPDATE_QUERY = """
             UPDATE reviews
             SET content = ?,
-            is_positive = ?
+                is_positive = ?
             WHERE review_id = ?
         """;
 
-        jdbcTemplate.update(UPDATE_QUERY, review.getFilmId(), review.getContent(),
-                review.isPositive(), review.getId());
+        int rowsUpdated = jdbcTemplate.update(
+                UPDATE_QUERY,
+                review.getContent(),
+                review.isPositive(),
+                review.getId()
+        );
+
+        if (rowsUpdated == 0) {
+            log.error("Отзыв с ID {} не найден для обновления", review.getId());
+            throw new NotFoundException("Отзыв с ID " + review.getId() + " не найден");
+        }
+        log.info("Отзыв с ID {} обновлен, затронуто строк: {}", review.getId(), rowsUpdated);
         return review;
     }
 
