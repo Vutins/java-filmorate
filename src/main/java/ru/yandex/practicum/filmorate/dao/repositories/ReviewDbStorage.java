@@ -30,7 +30,7 @@ public class ReviewDbStorage implements ReviewStorage {
     public Review create(Review review) {
         log.info("Создание отзыва в БД: {}", review);
         final String CHECK_EXISTS_QUERY = """
-            SELECT COUNT(*) FROM reviews 
+            SELECT COUNT(*) FROM reviews
             WHERE user_id = ? AND film_id = ?
         """;
 
@@ -193,7 +193,7 @@ public class ReviewDbStorage implements ReviewStorage {
 
         try {
             final String DELETE_OLD_QUERY = """
-            DELETE FROM review_reactions 
+            DELETE FROM review_reactions
             WHERE review_id = ? AND user_id = ?
             """;
 
