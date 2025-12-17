@@ -9,7 +9,6 @@ import ru.yandex.practicum.filmorate.model.enums.GenreValueList;
 import ru.yandex.practicum.filmorate.model.enums.RatingValueList;
 import ru.yandex.practicum.filmorate.storage.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.validation.ValidationTool;
 
 import java.util.*;
@@ -260,7 +259,6 @@ public class FilmService {
             }
         }
     }
-
 
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         if (!userServise.validUserId(userId) || !userServise.validUserId(friendId)) {
