@@ -24,6 +24,7 @@ import java.util.Optional;
 public class ReviewDbStorage implements ReviewStorage {
 
     private final JdbcTemplate jdbcTemplate;
+    private final ReviewRowMapper reviewRowMapper;
 
     @Override
     public Review create(Review review) {
@@ -50,8 +51,8 @@ public class ReviewDbStorage implements ReviewStorage {
         }
 
         final String ADD_QUERY = """
-            INSERT INTO reviews (content, is_positive, user_id, film_id)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO reviews (content, is_positive, user_id, film_id, useful)
+            VALUES (?, ?, ?, ?, 0)
         """;
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -109,29 +110,44 @@ public class ReviewDbStorage implements ReviewStorage {
             log.error("Отзыв с ID {} не найден для обновления", review.getId());
             throw new NotFoundException("Отзыв с ID " + review.getId() + " не найден");
         }
-        log.info("Отзыв с ID {} обновлен, затронуто строк: {}", review.getId(), rowsUpdated);
-        return review;
+
+        // Возвращаем обновленный отзыв
+        return findById(review.getId()).orElseThrow(
+                () -> new NotFoundException("Отзыв не найден после обновления")
+        );
     }
 
     @Override
     public void delete(long id) {
+        log.info("Удаление отзыва с ID: {}", id);
+
         final String DELETE_QUERY = """
             DELETE FROM reviews
             WHERE review_id = ?
         """;
 
-        jdbcTemplate.update(DELETE_QUERY, id);
+        int rowsDeleted = jdbcTemplate.update(DELETE_QUERY, id);
+        log.info("Удалено отзывов: {}", rowsDeleted);
     }
 
     @Override
     public Optional<Review> findById(long id) {
-         final String FIND_BY_ID_QUERY = """
+        log.debug("Поиск отзыва по ID: {}", id);
+
+        final String FIND_BY_ID_QUERY = """
             SELECT *
             FROM reviews
             WHERE review_id = ?
         """;
 
-        return jdbcTemplate.query(FIND_BY_ID_QUERY, new ReviewRowMapper(), id).stream().findFirst();
+        try {
+            return jdbcTemplate.query(FIND_BY_ID_QUERY, reviewRowMapper, id)
+                    .stream()
+                    .findFirst();
+        } catch (DataAccessException e) {
+            log.error("Ошибка при поиске отзыва по ID {}: {}", id, e.getMessage());
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -158,14 +174,14 @@ public class ReviewDbStorage implements ReviewStorage {
             if (filmId == null) {
                 reviews = jdbcTemplate.query(
                         GET_REVIEWS_SORTED_BY_USEFULNESS_QUERY,
-                        new ReviewRowMapper(),
+                        reviewRowMapper,
                         count
                 );
                 log.debug("Найдено {} отзывов (все фильмы)", reviews.size());
             } else {
                 reviews = jdbcTemplate.query(
                         GET_REVIEWS_BY_FILM_SORTED_BY_USEFULNESS_QUERY,
-                        new ReviewRowMapper(),
+                        reviewRowMapper,
                         filmId, count
                 );
                 log.debug("Найдено {} отзывов для фильма {}", reviews.size(), filmId);
@@ -179,49 +195,103 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public void addReaction(long reviewId, long userId, boolean isLike) {
-        final String INSERT_OR_UPDATE_REVIEW_REACTION_QUERY = """
-            INSERT INTO review_reactions (review_id, user_id, is_like)
-            VALUES (?, ?, ?) ON CONFLICT (review_id, user_id) DO
-            UPDATE SET is_like = EXCLUDED.is_like
-        """;
+        log.info("Добавление реакции: reviewId={}, userId={}, isLike={}",
+                reviewId, userId, isLike);
 
-        jdbcTemplate.update(INSERT_OR_UPDATE_REVIEW_REACTION_QUERY, reviewId, userId, isLike);
-        updateUseful(reviewId);
+        try {
+            // Для PostgreSQL используем правильный синтаксис
+            final String UPSERT_REACTION_QUERY = """
+                INSERT INTO review_reactions (review_id, user_id, is_like)
+                VALUES (?, ?, ?)
+                ON CONFLICT (review_id, user_id) 
+                DO UPDATE SET is_like = EXCLUDED.is_like
+            """;
+
+            int rowsAffected = jdbcTemplate.update(
+                    UPSERT_REACTION_QUERY,
+                    reviewId, userId, isLike
+            );
+            log.info("Реакция добавлена/обновлена, затронуто строк: {}", rowsAffected);
+
+            updateUseful(reviewId);
+
+        } catch (DataAccessException e) {
+            log.error("Ошибка при добавлении реакции: {}", e.getMessage(), e);
+            throw new RuntimeException("Ошибка при обработке реакции", e);
+        }
     }
 
     @Override
     public void removeReaction(long reviewId, long userId, boolean isLike) {
-        final String DELETE_REVIEW_REACTIONS_QUERY = """
+        log.info("Удаление реакции: reviewId={}, userId={}, isLike={}",
+                reviewId, userId, isLike);
+
+        final String DELETE_REACTION_QUERY = """
             DELETE FROM review_reactions
             WHERE review_id = ?
             AND user_id = ?
             AND is_like = ?
         """;
 
-        jdbcTemplate.update(DELETE_REVIEW_REACTIONS_QUERY, reviewId, userId, isLike);
-        updateUseful(reviewId);
+        try {
+            int rowsDeleted = jdbcTemplate.update(
+                    DELETE_REACTION_QUERY,
+                    reviewId, userId, isLike
+            );
+
+            if (rowsDeleted > 0) {
+                log.info("Реакция удалена, затронуто строк: {}", rowsDeleted);
+                updateUseful(reviewId);
+            } else {
+                log.warn("Реакция не найдена для удаления");
+            }
+
+        } catch (DataAccessException e) {
+            log.error("Ошибка при удалении реакции: {}", e.getMessage(), e);
+            throw new RuntimeException("Ошибка при удалении реакции", e);
+        }
     }
 
     private void updateUseful(long reviewId) {
-        final String UPDATE_REVIEW_USEFULNESS_QUERY = """
+        log.debug("Обновление полезности для отзыва ID: {}", reviewId);
+
+        final String UPDATE_USEFUL_QUERY = """
             UPDATE reviews
             SET useful = (
-                    SELECT
-                        COALESCE(
-                            SUM(
-                                CASE
-                                    WHEN is_like THEN 1
-                                    ELSE -1
-                                END
-                            ),
-                            0
-                        )
-                    FROM review_reactions
-                    WHERE review_id = ?
+                SELECT COALESCE(
+                    SUM(
+                        CASE
+                            WHEN is_like = true THEN 1
+                            WHEN is_like = false THEN -1
+                            ELSE 0
+                        END
+                    ),
+                    0
                 )
+                FROM review_reactions
+                WHERE review_id = ?
+            )
             WHERE review_id = ?
         """;
 
-        jdbcTemplate.update(UPDATE_REVIEW_USEFULNESS_QUERY, reviewId, reviewId);
+        try {
+            int rowsUpdated = jdbcTemplate.update(UPDATE_USEFUL_QUERY, reviewId, reviewId);
+            log.debug("Полезность обновлена для отзыва {}, затронуто строк: {}",
+                    reviewId, rowsUpdated);
+
+            // Проверяем результат
+            final String CHECK_USEFUL_QUERY =
+                    "SELECT useful FROM reviews WHERE review_id = ?";
+            Integer useful = jdbcTemplate.queryForObject(
+                    CHECK_USEFUL_QUERY,
+                    Integer.class,
+                    reviewId
+            );
+            log.debug("Отзыв {} теперь имеет полезность: {}", reviewId, useful);
+
+        } catch (DataAccessException e) {
+            log.error("Ошибка при обновлении полезности: {}", e.getMessage(), e);
+            throw new RuntimeException("Ошибка при обновлении полезности", e);
+        }
     }
 }
