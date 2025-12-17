@@ -70,33 +70,45 @@ public class ReviewController {
 
     @PutMapping("/{id}/like/{userId}")
     @ResponseStatus(HttpStatus.OK)
-    public void addLike(@PathVariable long id, @PathVariable long userId) {
+    public Review addLike(@PathVariable long id, @PathVariable long userId) {
         log.info("Запрос на добавление лайка от пользователя {} к отзыву {}", userId, id);
         reviewService.addReaction(id, userId, true);
-        log.info("Лайк от пользователя {} успешно добавлен к отзыву {}", userId, id);
+        Review updatedReview = reviewService.findById(id);
+        log.info("Лайк от пользователя {} успешно добавлен к отзыву {}, полезность: {}",
+                userId, id, updatedReview.getUseful());
+        return updatedReview;
     }
 
     @PutMapping("/{id}/dislike/{userId}")
     @ResponseStatus(HttpStatus.OK)
-    public void addDislike(@PathVariable long id, @PathVariable long userId) {
+    public Review addDislike(@PathVariable long id, @PathVariable long userId) {
         log.info("Запрос на добавление дизлайка от пользователя {} к отзыву {}", userId, id);
         reviewService.addReaction(id, userId, false);
-        log.info("Дизлайк от пользователя {} успешно добавлен к отзыву {}", userId, id);
+        Review updatedReview = reviewService.findById(id);
+        log.info("Дизлайк от пользователя {} успешно добавлен к отзыву {}, полезность: {}",
+                userId, id, updatedReview.getUseful());
+        return updatedReview;
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     @ResponseStatus(HttpStatus.OK)
-    public void removeLike(@PathVariable long id, @PathVariable long userId) {
-        log.info("Запрос на удаление лайка от пользователя {} к отзыву {}", userId, id);
+    public Review removeLike(@PathVariable long id, @PathVariable long userId) {
+        log.info("Запрос на удаление лайка от пользователя {} у отзыва {}", userId, id);
         reviewService.removeReaction(id, userId, true);
-        log.info("Лайк от пользователя {} успешно удален у отзыва {}", userId, id);
+        Review updatedReview = reviewService.findById(id);
+        log.info("Лайк от пользователя {} успешно удален у отзыва {}, полезность: {}",
+                userId, id, updatedReview.getUseful());
+        return updatedReview;
     }
 
     @DeleteMapping("/{id}/dislike/{userId}")
     @ResponseStatus(HttpStatus.OK)
-    public void removeDislike(@PathVariable long id, @PathVariable long userId) {
-        log.info("Запрос на удаление дизлайка от пользователя {} к отзыву {}", userId, id);
+    public Review removeDislike(@PathVariable long id, @PathVariable long userId) {
+        log.info("Запрос на удаление дизлайка от пользователя {} у отзыва {}", userId, id);
         reviewService.removeReaction(id, userId, false);
-        log.info("Дизлайк от пользователя {} успешно удален у отзыва {}", userId, id);
+        Review updatedReview = reviewService.findById(id);
+        log.info("Дизлайк от пользователя {} успешно удален у отзыва {}, полезность: {}",
+                userId, id, updatedReview.getUseful());
+        return updatedReview;
     }
 }
