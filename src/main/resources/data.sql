@@ -12,3 +12,13 @@ VALUES (1, 'Комедия'),
        (4, 'Триллер'),
        (5, 'Документальный'),
        (6, 'Боевик');
+
+INSERT INTO event_types (id, name)
+VALUES (1, 'LIKE'),
+       (2, 'REVIEW'),
+       (3, 'FRIEND');
+
+INSERT INTO operation_types (id, name)
+VALUES (1, 'ADD'),
+       (2, 'UPDATE'),
+       (3, 'REMOVE');
