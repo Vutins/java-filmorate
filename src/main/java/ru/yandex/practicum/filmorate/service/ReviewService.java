@@ -6,11 +6,14 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Review;
+import ru.yandex.practicum.filmorate.model.enums.EventTypes;
+import ru.yandex.practicum.filmorate.model.enums.OperationTypes;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.ReviewStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.Collection;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -20,6 +23,7 @@ public class ReviewService {
     private final ReviewStorage reviewStorage;
     private final UserStorage userStorage;
     private final FilmStorage filmStorage;
+    private final EventService eventService;
 
     public Review create(Review review) {
         log.info("Создание нового отзыва: {}", review);
@@ -30,6 +34,9 @@ public class ReviewService {
         validateUserAndFilm(review.getUserId(), review.getFilmId());
         Review createdReview = reviewStorage.create(review);
         log.info("Отзыв успешно создан с ID: {}", createdReview.getId());
+
+        eventService.addEvent(createdReview.getUserId(), EventTypes.REVIEW, OperationTypes.ADD, createdReview.getId());
+        log.info("Добавлено событие (add review) в ленту пользователя");
 
         return createdReview;
     }
@@ -43,13 +50,24 @@ public class ReviewService {
         log.info("Отзыв с ID: {} успешно обновлен, полезность: {}",
                 updatedReview.getId(), updatedReview.getUseful());
 
+        eventService.addEvent(updatedReview.getUserId(), EventTypes.REVIEW, OperationTypes.UPDATE, updatedReview.getId());
+        log.info("Добавлено событие (update review) в ленту пользователя");
+
         return updatedReview;
     }
 
     public void delete(long id) {
+        Optional<Review> deletingReview = reviewStorage.findById(id);
+
         log.info("Удаление отзыва с ID: {}", id);
         reviewStorage.delete(id);
         log.info("Отзыв с ID: {} удален из хранилища", id);
+
+        if (deletingReview.isPresent()) {
+            Review review = deletingReview.get();
+            eventService.addEvent(review.getUserId(), EventTypes.REVIEW, OperationTypes.REMOVE, review.getId());
+            log.info("Добавлено событие (remove review) в ленту пользователя");
+        }
     }
 
     public Review findById(long id) {
