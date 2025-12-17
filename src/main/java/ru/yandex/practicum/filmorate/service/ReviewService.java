@@ -21,12 +21,10 @@ public class ReviewService {
 
     public Review create(Review review) {
         log.info("Создание нового отзыва: {}", review);
-
         if (review.getIsPositive() == null) {
             log.error("Поле isPositive не может быть null");
             throw new ValidationException("Поле isPositive обязательно");
         }
-
         validateUserAndFilm(review.getUserId(), review.getFilmId());
         Review createdReview = reviewStorage.create(review);
         log.info("Отзыв успешно создан с ID: {}", createdReview.getId());
@@ -37,7 +35,6 @@ public class ReviewService {
     public Review update(Review review) {
         log.info("Обновление отзыва с ID: {}, новые данные: {}",
                 review.getId(), review);
-
         validateReview(review.getId());
 
         Review updatedReview = reviewStorage.update(review);
@@ -49,14 +46,12 @@ public class ReviewService {
 
     public void delete(long id) {
         log.info("Удаление отзыва с ID: {}", id);
-
         reviewStorage.delete(id);
         log.info("Отзыв с ID: {} удален из хранилища", id);
     }
 
     public Review findById(long id) {
         log.debug("Поиск отзыва по ID: {}", id);
-
         Review review = reviewStorage.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Отзыв с ID {} не найден", id);
@@ -73,7 +68,6 @@ public class ReviewService {
         } else {
             log.info("Поиск {} последних отзывов (все фильмы)", count);
         }
-
         Collection<Review> reviews = reviewStorage.findAllByFilmId(filmId, count);
         log.info("Найдено {} отзывов", reviews.size());
 
@@ -82,9 +76,9 @@ public class ReviewService {
 
     public void addReaction(long reviewId, long userId, boolean isLike) {
         String reactionType = isLike ? "лайк" : "дизлайк";
+
         log.info("Добавление {} от пользователя {} к отзыву {}",
                 reactionType, userId, reviewId);
-
         if (!userService.validUserId(userId)) {
             log.error("Пользователь с ID {} не найден", userId);
             throw new NotFoundException("Пользователь с ID " + userId + " не найден");
@@ -124,7 +118,6 @@ public class ReviewService {
 
     private void validateUserAndFilm(Long userId, Long filmId) {
         log.debug("Проверка существования пользователя {} и фильма {}", userId, filmId);
-
         if (userService.getUserById(userId) == null) {
             log.error("Пользователь с ID {} не найден при создании отзыва", userId);
             throw new NotFoundException("Пользователь с ID " + userId + " не найден");
@@ -134,18 +127,15 @@ public class ReviewService {
             log.error("Фильм с ID {} не найден при создании отзыва", filmId);
             throw new NotFoundException("Фильм с ID " + filmId + " не найден");
         }
-
         log.debug("Пользователь {} и фильм {} существуют", userId, filmId);
     }
 
     private void validateReview(Long reviewId) {
         log.debug("Проверка существования отзыва с ID: {}", reviewId);
-
         if (reviewStorage.findById(reviewId).isEmpty()) {
             log.error("Отзыв с ID {} не найден", reviewId);
             throw new NotFoundException("Отзыв с ID " + reviewId + " не найден");
         }
-
         log.debug("Отзыв с ID: {} существует", reviewId);
     }
 }

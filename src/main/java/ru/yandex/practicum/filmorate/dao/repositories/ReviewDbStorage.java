@@ -29,7 +29,6 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     public Review create(Review review) {
         log.info("Создание отзыва в БД: {}", review);
-
         final String CHECK_EXISTS_QUERY = """
             SELECT COUNT(*) FROM reviews 
             WHERE user_id = ? AND film_id = ?
@@ -91,7 +90,6 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     public Review update(Review review) {
         log.info("Обновление отзыва с ID {} в БД", review.getId());
-
         final String UPDATE_QUERY = """
             UPDATE reviews
             SET content = ?,
@@ -110,8 +108,6 @@ public class ReviewDbStorage implements ReviewStorage {
             log.error("Отзыв с ID {} не найден для обновления", review.getId());
             throw new NotFoundException("Отзыв с ID " + review.getId() + " не найден");
         }
-
-        // Возвращаем обновленный отзыв
         return findById(review.getId()).orElseThrow(
                 () -> new NotFoundException("Отзыв не найден после обновления")
         );
@@ -120,7 +116,6 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     public void delete(long id) {
         log.info("Удаление отзыва с ID: {}", id);
-
         final String DELETE_QUERY = """
             DELETE FROM reviews
             WHERE review_id = ?
@@ -133,7 +128,6 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     public Optional<Review> findById(long id) {
         log.debug("Поиск отзыва по ID: {}", id);
-
         final String FIND_BY_ID_QUERY = """
             SELECT *
             FROM reviews
@@ -153,7 +147,6 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     public Collection<Review> findAllByFilmId(Long filmId, int count) {
         log.debug("Поиск отзывов: filmId={}, count={}", filmId, count);
-
         final String GET_REVIEWS_SORTED_BY_USEFULNESS_QUERY = """
             SELECT *
             FROM reviews
@@ -210,6 +203,7 @@ public class ReviewDbStorage implements ReviewStorage {
             INSERT INTO review_reactions (review_id, user_id, is_like)
             VALUES (?, ?, ?)
             """;
+
             jdbcTemplate.update(INSERT_REACTION_QUERY, reviewId, userId, isLike);
 
             updateUseful(reviewId);
@@ -225,7 +219,6 @@ public class ReviewDbStorage implements ReviewStorage {
     public void removeReaction(long reviewId, long userId, boolean isLike) {
         log.info("Удаление реакции: reviewId={}, userId={}, isLike={}",
                 reviewId, userId, isLike);
-
         final String DELETE_REACTION_QUERY = """
             DELETE FROM review_reactions
             WHERE review_id = ?
@@ -254,7 +247,6 @@ public class ReviewDbStorage implements ReviewStorage {
 
     private void updateUseful(long reviewId) {
         log.debug("Обновление полезности для отзыва ID: {}", reviewId);
-
         final String UPDATE_USEFUL_QUERY = """
             UPDATE reviews
             SET useful = (
@@ -278,10 +270,9 @@ public class ReviewDbStorage implements ReviewStorage {
             int rowsUpdated = jdbcTemplate.update(UPDATE_USEFUL_QUERY, reviewId, reviewId);
             log.debug("Полезность обновлена для отзыва {}, затронуто строк: {}",
                     reviewId, rowsUpdated);
-
-            // Проверяем результат
             final String CHECK_USEFUL_QUERY =
                     "SELECT useful FROM reviews WHERE review_id = ?";
+
             Integer useful = jdbcTemplate.queryForObject(
                     CHECK_USEFUL_QUERY,
                     Integer.class,
