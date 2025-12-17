@@ -261,7 +261,6 @@ public class FilmService {
         }
     }
 
-
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         if (!userStorage.validUserId(userId) || !userStorage.validUserId(friendId)) {
             throw new NotFoundException("пользователь с таким ID не существует - getCommonFilms");
