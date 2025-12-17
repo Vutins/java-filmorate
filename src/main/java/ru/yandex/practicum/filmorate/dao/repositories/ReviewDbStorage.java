@@ -199,25 +199,25 @@ public class ReviewDbStorage implements ReviewStorage {
                 reviewId, userId, isLike);
 
         try {
-            // Для PostgreSQL используем правильный синтаксис
-            final String UPSERT_REACTION_QUERY = """
-                INSERT INTO review_reactions (review_id, user_id, is_like)
-                VALUES (?, ?, ?)
-                ON CONFLICT (review_id, user_id) 
-                DO UPDATE SET is_like = EXCLUDED.is_like
+            final String DELETE_OLD_QUERY = """
+            DELETE FROM review_reactions 
+            WHERE review_id = ? AND user_id = ?
             """;
 
-            int rowsAffected = jdbcTemplate.update(
-                    UPSERT_REACTION_QUERY,
-                    reviewId, userId, isLike
-            );
-            log.info("Реакция добавлена/обновлена, затронуто строк: {}", rowsAffected);
+            jdbcTemplate.update(DELETE_OLD_QUERY, reviewId, userId);
+
+            final String INSERT_REACTION_QUERY = """
+            INSERT INTO review_reactions (review_id, user_id, is_like)
+            VALUES (?, ?, ?)
+            """;
+            jdbcTemplate.update(INSERT_REACTION_QUERY, reviewId, userId, isLike);
 
             updateUseful(reviewId);
+            log.info("Реакция успешно добавлена");
 
         } catch (DataAccessException e) {
             log.error("Ошибка при добавлении реакции: {}", e.getMessage(), e);
-            throw new RuntimeException("Ошибка при обработке реакции", e);
+            throw new RuntimeException("Ошибка при обработке реакции: " + e.getMessage(), e);
         }
     }
 
