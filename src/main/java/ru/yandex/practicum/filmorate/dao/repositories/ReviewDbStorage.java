@@ -138,9 +138,12 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public Collection<Review> findAllByFilmId(Long filmId, int count) {
+        log.debug("Поиск отзывов: filmId={}, count={}", filmId, count);
+
         final String GET_REVIEWS_SORTED_BY_USEFULNESS_QUERY = """
             SELECT *
-            FROM reviews useful DESC
+            FROM reviews
+            ORDER BY useful DESC
             LIMIT ?
         """;
 
@@ -152,12 +155,28 @@ public class ReviewDbStorage implements ReviewStorage {
             LIMIT ?
         """;
 
-        String sql = (filmId == null)
-                ? GET_REVIEWS_SORTED_BY_USEFULNESS_QUERY
-                : GET_REVIEWS_BY_FILM_SORTED_BY_USEFULNESS_QUERY;
-        return (filmId == null)
-                ? jdbcTemplate.query(sql, new ReviewRowMapper(), count)
-                : jdbcTemplate.query(sql, new ReviewRowMapper(), filmId, count);
+        try {
+            Collection<Review> reviews;
+            if (filmId == null) {
+                reviews = jdbcTemplate.query(
+                        GET_REVIEWS_SORTED_BY_USEFULNESS_QUERY,
+                        new ReviewRowMapper(),
+                        count
+                );
+                log.debug("Найдено {} отзывов (все фильмы)", reviews.size());
+            } else {
+                reviews = jdbcTemplate.query(
+                        GET_REVIEWS_BY_FILM_SORTED_BY_USEFULNESS_QUERY,
+                        new ReviewRowMapper(),
+                        filmId, count
+                );
+                log.debug("Найдено {} отзывов для фильма {}", reviews.size(), filmId);
+            }
+            return reviews;
+        } catch (DataAccessException e) {
+            log.error("Ошибка при поиске отзывов: {}", e.getMessage());
+            throw e;
+        }
     }
 
     @Override
