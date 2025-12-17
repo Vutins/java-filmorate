@@ -96,17 +96,30 @@ public class ReviewService {
                 reactionType, userId, reviewId);
     }
 
+    public Review addReactionAndGetReview(long reviewId, long userId, boolean isLike) {
+        addReaction(reviewId, userId, isLike);
+        return findById(reviewId);
+    }
+
     public void removeReaction(long reviewId, long userId, boolean isLike) {
         String reactionType = isLike ? "лайка" : "дизлайка";
         log.info("Удаление {} от пользователя {} у отзыва {}",
                 reactionType, userId, reviewId);
 
-        userService.validUserId(userId);
-        validateReview(reviewId);
+        if (!userService.validUserId(userId)) {
+            log.error("Пользователь с ID {} не найден", userId);
+            throw new NotFoundException("Пользователь с ID " + userId + " не найден");
+        }
 
+        validateReview(reviewId);
         reviewStorage.removeReaction(reviewId, userId, isLike);
         log.info("{} от пользователя {} успешно удален у отзыва {}",
                 reactionType, userId, reviewId);
+    }
+
+    public Review removeReactionAndGetReview(long reviewId, long userId, boolean isLike) {
+        removeReaction(reviewId, userId, isLike);
+        return findById(reviewId);
     }
 
     private void validateUserAndFilm(Long userId, Long filmId) {
