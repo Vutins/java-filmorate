@@ -13,6 +13,7 @@ import ru.yandex.practicum.filmorate.dao.repositories.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Rating;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.EventService;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.time.LocalDate;
@@ -30,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
         FilmDbStorage.class, FilmRowMapper.class,
         GenreDbStorage.class, GenreRowMapper.class,
         RatingDbStorage.class, RatingRowMapper.class,
-        UserService.class
+        UserService.class, EventService.class, EventRowMapper.class, EventDbStorage.class
 })
 public class RecommendationControllerTest {
 

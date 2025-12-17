@@ -12,6 +12,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import ru.yandex.practicum.filmorate.dao.mappers.*;
 import ru.yandex.practicum.filmorate.dao.repositories.*;
 import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.service.EventService;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.time.LocalDate;
@@ -26,7 +27,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @JdbcTest
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-@Import({UserDbStorage.class, UserRowMapper.class, GenreDbStorage.class, GenreRowMapper.class, RatingDbStorage.class, RatingRowMapper.class, FilmDbStorage.class, FilmRowMapper.class, DirectorDbStorage.class, DirectorRowMapper.class, FilmService.class})
+@Import({UserDbStorage.class, UserRowMapper.class, GenreDbStorage.class, GenreRowMapper.class, RatingDbStorage.class,
+        RatingRowMapper.class, FilmDbStorage.class, FilmRowMapper.class, DirectorDbStorage.class, DirectorRowMapper.class,
+        FilmService.class, EventService.class, EventRowMapper.class, EventDbStorage.class})
 public class FilmControllerTest {
 
     private final FilmDbStorage filmDbStorage;

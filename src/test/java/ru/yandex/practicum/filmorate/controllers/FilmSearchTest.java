@@ -11,6 +11,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import ru.yandex.practicum.filmorate.dao.mappers.*;
 import ru.yandex.practicum.filmorate.dao.repositories.*;
 import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.service.EventService;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.time.LocalDate;
@@ -22,7 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Import({FilmDbStorage.class, FilmRowMapper.class, UserDbStorage.class, UserRowMapper.class,
-        DirectorDbStorage.class, DirectorRowMapper.class, FilmService.class})
+        DirectorDbStorage.class, DirectorRowMapper.class, FilmService.class,
+        EventService.class, EventRowMapper.class, EventDbStorage.class})
 public class FilmSearchTest {
 
     private final FilmDbStorage filmDbStorage;
