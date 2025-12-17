@@ -83,8 +83,13 @@ public class ReviewService {
                 reactionType, userId, reviewId);
 
         userService.validUserId(userId);
-        validateReview(reviewId);
 
+        if (!userService.validUserId(userId)) {
+            log.error("Пользователь с ID {} не найден", userId);
+            throw new NotFoundException("Пользователь с ID " + userId + " не найден");
+        }
+
+        validateReview(reviewId);
         reviewStorage.addReaction(reviewId, userId, isLike);
         log.info("{} от пользователя {} успешно добавлен к отзыву {}",
                 reactionType, userId, reviewId);
