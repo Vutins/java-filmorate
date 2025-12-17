@@ -6,7 +6,9 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Review;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.ReviewStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.Collection;
 
@@ -16,8 +18,8 @@ import java.util.Collection;
 public class ReviewService {
 
     private final ReviewStorage reviewStorage;
-    private final UserService userService;
-    private final FilmService filmService;
+    private final UserStorage userStorage;
+    private final FilmStorage filmStorage;
 
     public Review create(Review review) {
         log.info("Создание нового отзыва: {}", review);
@@ -79,7 +81,7 @@ public class ReviewService {
 
         log.info("Добавление {} от пользователя {} к отзыву {}",
                 reactionType, userId, reviewId);
-        if (!userService.validUserId(userId)) {
+        if (!userStorage.validUserId(userId)) {
             log.error("Пользователь с ID {} не найден", userId);
             throw new NotFoundException("Пользователь с ID " + userId + " не найден");
         }
@@ -100,7 +102,7 @@ public class ReviewService {
         log.info("Удаление {} от пользователя {} у отзыва {}",
                 reactionType, userId, reviewId);
 
-        if (!userService.validUserId(userId)) {
+        if (!userStorage.validUserId(userId)) {
             log.error("Пользователь с ID {} не найден", userId);
             throw new NotFoundException("Пользователь с ID " + userId + " не найден");
         }
@@ -118,12 +120,12 @@ public class ReviewService {
 
     private void validateUserAndFilm(Long userId, Long filmId) {
         log.debug("Проверка существования пользователя {} и фильма {}", userId, filmId);
-        if (userService.getUserById(userId) == null) {
+        if (userStorage.getUserById(userId) == null) {
             log.error("Пользователь с ID {} не найден при создании отзыва", userId);
             throw new NotFoundException("Пользователь с ID " + userId + " не найден");
         }
 
-        if (filmService.getFilmById(filmId) == null) {
+        if (filmStorage.getFilmById(filmId) == null) {
             log.error("Фильм с ID {} не найден при создании отзыва", filmId);
             throw new NotFoundException("Фильм с ID " + filmId + " не найден");
         }

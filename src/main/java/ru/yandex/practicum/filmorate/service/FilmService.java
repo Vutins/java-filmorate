@@ -9,6 +9,7 @@ import ru.yandex.practicum.filmorate.model.enums.GenreValueList;
 import ru.yandex.practicum.filmorate.model.enums.RatingValueList;
 import ru.yandex.practicum.filmorate.storage.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.validation.ValidationTool;
 
 import java.util.*;
@@ -18,13 +19,13 @@ import java.util.*;
 public class FilmService {
 
     private final FilmStorage filmStorage;
-    private final UserService userServise;
+    private final UserStorage userStorage;
     private final DirectorStorage directorStorage;
     private static final String PROGRAM_LEVEL = "FilmService";
 
-    public FilmService(FilmStorage filmStorage, UserService userServise,  DirectorStorage directorStorage) {
+    public FilmService(FilmStorage filmStorage, UserStorage userStorage,  DirectorStorage directorStorage) {
         this.filmStorage = filmStorage;
-        this.userServise = userServise;
+        this.userStorage = userStorage;
         this.directorStorage = directorStorage;
     }
 
@@ -179,7 +180,7 @@ public class FilmService {
         ValidationTool.checkForNull(userId, PROGRAM_LEVEL, "Лайк к фильму не может быть добален по ID пользователя = null");
 
         filmStorage.getFilmById(filmId);
-        userServise.getUserById(userId);
+        userStorage.getUserById(userId);
 
         filmStorage.addLike(filmId, userId);
         log.info("Лайк фильму успешно добавлен");
@@ -192,7 +193,7 @@ public class FilmService {
                 " пользователя = null");
 
         filmStorage.getFilmById(filmId);
-        userServise.getUserById(userId);
+        userStorage.getUserById(userId);
 
         filmStorage.removeLike(filmId, userId);
         log.info("Лайк фильма успешно удален");
@@ -261,7 +262,7 @@ public class FilmService {
     }
 
     public List<Film> getCommonFilms(Long userId, Long friendId) {
-        if (!userServise.validUserId(userId) || !userServise.validUserId(friendId)) {
+        if (!userStorage.validUserId(userId) || !userStorage.validUserId(friendId)) {
             throw new NotFoundException("пользователь с таким ID не существует - getCommonFilms");
         }
         return filmStorage.getCommonFilms(userId, friendId);
