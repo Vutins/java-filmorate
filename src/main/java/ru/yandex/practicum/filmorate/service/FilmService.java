@@ -4,7 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.model.Director;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Rating;
 import ru.yandex.practicum.filmorate.model.enums.EventTypes;
 import ru.yandex.practicum.filmorate.model.enums.GenreValueList;
 import ru.yandex.practicum.filmorate.model.enums.OperationTypes;
@@ -20,42 +23,37 @@ import java.util.*;
 @Slf4j
 public class FilmService {
 
+    private static final String PROGRAM_LEVEL = "FilmService";
     private final EventService eventService;
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
     private final DirectorStorage directorStorage;
-    private static final String PROGRAM_LEVEL = "FilmService";
+    private final GenreService genreService;
 
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage,  DirectorStorage directorStorage, EventService eventService) {
+    public FilmService(FilmStorage filmStorage, UserStorage userStorage, DirectorStorage directorStorage, EventService eventService, GenreService genreService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.directorStorage = directorStorage;
         this.eventService = eventService;
+        this.genreService = genreService;
     }
 
     public void delete(Long filmId) {
         String message;
 
         if (filmId == null || filmId < 1) {
-             message = String.format(
-                     "%s : Попытка удалить фильм по ID = %s",
-                    PROGRAM_LEVEL, String.valueOf(filmId)
-             );
+            message = String.format("%s : Попытка удалить фильм по ID = %s", PROGRAM_LEVEL, filmId);
             log.warn(message);
             throw new ValidationException(message);
         }
 
-        if (filmStorage.delete(filmId) == false) {
-            message = String.format(
-                    "%s : Фильм с ID = %s не найден в приложении",
-                    PROGRAM_LEVEL, String.valueOf(filmId));
+        if (!filmStorage.delete(filmId)) {
+            message = String.format("%s : Фильм с ID = %s не найден в приложении", PROGRAM_LEVEL, filmId);
             log.warn(message);
             throw new NotFoundException(message);
         }
 
-        message = String.format(
-                "%s : Фильм ID %s успешно удален",
-                PROGRAM_LEVEL, String.valueOf(filmId));
+        message = String.format("%s : Фильм ID %s успешно удален", PROGRAM_LEVEL, filmId);
         log.info(message);
     }
 
@@ -105,21 +103,11 @@ public class FilmService {
             if ((film.getMpa().getName() != null) && (RatingValueList.isCorrectRating(film.getMpa().getName()))) {
                 validFilmRating = film.getMpa();
             } else {
-                validFilmRating = new Rating(film.getMpa().getId(),
-                        RatingValueList.values()[film.getMpa().getId() - 1].getRating());
+                validFilmRating = new Rating(film.getMpa().getId(), RatingValueList.values()[film.getMpa().getId() - 1].getRating());
             }
         }
 
-        Film validFilm = new Film(
-                film.getId(),
-                film.getName(),
-                film.getDescription(),
-                film.getReleaseDate(),
-                film.getDuration(),
-                validGenresSet,
-                validFilmRating,
-                film.getDirectors()
-        );
+        Film validFilm = new Film(film.getId(), film.getName(), film.getDescription(), film.getReleaseDate(), film.getDuration(), validGenresSet, validFilmRating, film.getDirectors());
         Film filmResult = filmStorage.create(validFilm);
         validateDirectorExists(filmResult);
         addDirectorToFilm(filmResult);
@@ -156,8 +144,7 @@ public class FilmService {
             if ((film.getMpa().getName() != null) && (RatingValueList.isCorrectRating(film.getMpa().getName()))) {
                 validFilmRating = film.getMpa();
             } else {
-                validFilmRating = new Rating(film.getMpa().getId(),
-                        RatingValueList.values()[film.getMpa().getId() - 1].getRating());
+                validFilmRating = new Rating(film.getMpa().getId(), RatingValueList.values()[film.getMpa().getId() - 1].getRating());
             }
         }
 
@@ -165,16 +152,7 @@ public class FilmService {
         deleteDirectorsFromFilm(film);
         addDirectorToFilm(film);
 
-        Film validFilm = new Film(
-                film.getId(),
-                film.getName(),
-                film.getDescription(),
-                film.getReleaseDate(),
-                film.getDuration(),
-                validGenresSet,
-                validFilmRating,
-                film.getDirectors()
-        );
+        Film validFilm = new Film(film.getId(), film.getName(), film.getDescription(), film.getReleaseDate(), film.getDuration(), validGenresSet, validFilmRating, film.getDirectors());
         return filmStorage.update(validFilm);
     }
 
@@ -193,10 +171,8 @@ public class FilmService {
     }
 
     public void removeLike(Long filmId, Long userId) {
-        ValidationTool.checkForNull(filmId, PROGRAM_LEVEL, "Лайк у фильма не может быть удален по ID" +
-                " фильма = null");
-        ValidationTool.checkForNull(userId, PROGRAM_LEVEL, "Лайк у фильма не может быть удален по ID" +
-                " пользователя = null");
+        ValidationTool.checkForNull(filmId, PROGRAM_LEVEL, "Лайк у фильма не может быть удален по ID" + " фильма = null");
+        ValidationTool.checkForNull(userId, PROGRAM_LEVEL, "Лайк у фильма не может быть удален по ID" + " пользователя = null");
 
         filmStorage.getFilmById(filmId);
         userStorage.getUserById(userId);
@@ -207,11 +183,18 @@ public class FilmService {
         log.info("Добавлено событие (remove like) в ленту пользователя");
     }
 
-    public List<Film> getPopularFilms(int limit) {
+    public List<Film> getPopularFilms(int limit, Integer genreId, Integer year) {
         if (limit <= 0) {
             return List.of();
         }
-        List<Film> films = filmStorage.getTopFilms(limit);
+        if (genreId != null) {
+            Genre genre = genreService.getGenreById(genreId);
+            if (genre == null) {
+                throw new NotFoundException("Жанр с ID: " + genreId + " не найден!");
+            }
+        }
+
+        List<Film> films = filmStorage.getTopFilms(limit, genreId, year);
         addProducersToFilms(films);
 
         return List.copyOf(films);
@@ -232,10 +215,41 @@ public class FilmService {
         return films;
     }
 
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        if (!userStorage.validUserId(userId) || !userStorage.validUserId(friendId)) {
+            throw new NotFoundException("пользователь с таким ID не существует - getCommonFilms");
+        }
+        return filmStorage.getCommonFilms(userId, friendId);
+    }
+
+    public List<Film> searchFilms(String query, List<String> by) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        if (by == null || by.isEmpty()) {
+            by = List.of("title", "director");
+        }
+
+        List<String> validByValues = new ArrayList<>();
+        for (String searchType : by) {
+            if ("title".equals(searchType) || "director".equals(searchType)) {
+                validByValues.add(searchType);
+            }
+        }
+
+        if (validByValues.isEmpty()) {
+            validByValues = List.of("title", "director");
+        }
+
+        List<Film> films = filmStorage.searchFilms(query, validByValues);
+        addProducersToFilms(films);
+        return films;
+    }
+
     private Film validateDirectorExists(Film film) {
         if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
-            List<Director> directors = directorStorage.getAll().stream()
-                    .filter(director -> film.getDirectors().contains(director)).toList();
+            List<Director> directors = directorStorage.getAll().stream().filter(director -> film.getDirectors().contains(director)).toList();
             if (directors.isEmpty()) {
                 throw new NotFoundException("Такого режиссёра не существует");
             }
@@ -267,38 +281,5 @@ public class FilmService {
                 }
             }
         }
-    }
-
-    public List<Film> getCommonFilms(Long userId, Long friendId) {
-        if (!userStorage.validUserId(userId) || !userStorage.validUserId(friendId)) {
-            throw new NotFoundException("пользователь с таким ID не существует - getCommonFilms");
-        }
-        return filmStorage.getCommonFilms(userId, friendId);
-    }
-
-    public List<Film> searchFilms(String query, List<String> by) {
-        if (query == null || query.isBlank()) {
-            return List.of();
-        }
-
-        if (by == null || by.isEmpty()) {
-            by = List.of("title", "director");
-        }
-
-        // Проверяем валидность параметра by
-        List<String> validByValues = new ArrayList<>();
-        for (String searchType : by) {
-            if ("title".equals(searchType) || "director".equals(searchType)) {
-                validByValues.add(searchType);
-            }
-        }
-
-        if (validByValues.isEmpty()) {
-            validByValues = List.of("title", "director");
-        }
-
-        List<Film> films = filmStorage.searchFilms(query, validByValues);
-        addProducersToFilms(films);
-        return films;
     }
 }

@@ -14,6 +14,7 @@ import ru.yandex.practicum.filmorate.dao.repositories.*;
 import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.service.EventService;
 import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.service.GenreService;
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -29,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Import({UserDbStorage.class, UserRowMapper.class, GenreDbStorage.class, GenreRowMapper.class, RatingDbStorage.class,
         RatingRowMapper.class, FilmDbStorage.class, FilmRowMapper.class, DirectorDbStorage.class, DirectorRowMapper.class,
-        FilmService.class, EventService.class, EventRowMapper.class, EventDbStorage.class})
+        FilmService.class, EventService.class, EventRowMapper.class, EventDbStorage.class, GenreService.class})
 public class FilmControllerTest {
 
     private final FilmDbStorage filmDbStorage;
@@ -104,7 +105,7 @@ public class FilmControllerTest {
         filmDbStorage.addLike(2L, 1L);
         filmDbStorage.addLike(2L, 2L);
 
-        List<Film> topFilms = filmDbStorage.getTopFilms(10);
+        List<Film> topFilms = filmDbStorage.getTopFilms(10, null, null);
         assertEquals(2, topFilms.size());
         assertEquals(2, topFilms.get(0).getId());
         assertEquals(1, topFilms.get(1).getId());
@@ -127,7 +128,7 @@ public class FilmControllerTest {
         Film film = filmDbStorage.getFilmById(1L);
 
         filmDbStorage.removeLike(1L, 1L);
-        List<Film> topFilms = filmDbStorage.getTopFilms(10);
+        List<Film> topFilms = filmDbStorage.getTopFilms(10, null, null);
         assertEquals(1, topFilms.size());
     }
 
