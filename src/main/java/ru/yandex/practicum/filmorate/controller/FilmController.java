@@ -47,9 +47,9 @@ public class FilmController {
 
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/popular")
-    public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+    public List<Film> getPopularFilms(@RequestParam(value = "count", defaultValue = "10") int count, @RequestParam(value = "genreId", required = false) Integer genreId, @RequestParam(value = "year", required = false) Integer year) {
         log.info("Запрос на получение списка n-лучших фильмов по кол-ву лайков");
-        return filmService.getPopularFilms(count);
+        return filmService.getPopularFilms(count, genreId, year);
     }
 
     @ResponseStatus(HttpStatus.OK)
@@ -98,14 +98,10 @@ public class FilmController {
 
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/search")
-    public List<Film> searchFilms(@RequestParam String query,
-                                  @RequestParam(defaultValue = "title,director") String by) {
+    public List<Film> searchFilms(@RequestParam String query, @RequestParam(defaultValue = "title,director") String by) {
         log.info("Запрос на поиск фильмов по запросу: '{}', по полям: {}", query, by);
 
-        List<String> searchFields = Arrays.stream(by.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
+        List<String> searchFields = Arrays.stream(by.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
 
         return filmService.searchFilms(query, searchFields);
     }

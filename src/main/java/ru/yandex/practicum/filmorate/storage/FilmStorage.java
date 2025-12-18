@@ -20,7 +20,7 @@ public interface FilmStorage {
 
     void removeLike(Long filmId, Long userId);
 
-    List<Film> getTopFilms(int limit);
+    List<Film> getTopFilms(int limit, Integer genreId, Integer year);
 
     List<Film> getFilmsByDirector(Long directorId, String sortBy);
 

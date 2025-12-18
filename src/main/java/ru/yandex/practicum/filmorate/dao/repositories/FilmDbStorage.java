@@ -3,10 +3,7 @@ package ru.yandex.practicum.filmorate.dao.repositories;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcOperations;
-import org.springframework.jdbc.core.ResultSetExtractor;
-import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.*;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.InternalServerException;
@@ -217,20 +214,22 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getTopFilms(int limit) {
+    public List<Film> getTopFilms(int limit, Integer genreId, Integer year) {
         final String COUNT_FILMS_QUERY = "SELECT COUNT(*) FROM films";
         Integer totalFilms = jdbc.queryForObject(COUNT_FILMS_QUERY, Integer.class);
 
         int actualLimit = (totalFilms != null && totalFilms < limit) ? totalFilms : limit;
 
-        final String FIND_FILMS_WITH_MPA_RATING_SORTED_BY_LIKES_LIMITED_QUERY = """
-                SELECT f.*, mr.name AS mpa_rating_name
-                FROM films AS f
-                LEFT OUTER JOIN mpa_rating AS mr ON f.mpa_rating_id = mr.mpa_rating_id
-                LEFT OUTER JOIN film_like AS fl ON f.id = fl.film_id
+        final String GET_POPULAR_FILMS_SORTED_BY_GENRE_YEAR = """
+                SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, mr.name AS mpa_rating_name, COUNT(DISTINCT fl.user_id) AS likes
+                FROM films f
+                JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+                LEFT JOIN film_like fl ON f.id = fl.film_id
+                LEFT JOIN film_genre fg ON f.id = fg.film_id
+                WHERE (? IS NULL OR YEAR(f.release_date) = ?) AND (? IS NULL OR fg.genre_id = ?)
                 GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, mr.name
-                ORDER BY COUNT(fl.user_id) DESC
-                LIMIT ?;
+                ORDER BY likes DESC
+                LIMIT ?
                 """;
 
         final String FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY = """
@@ -245,7 +244,16 @@ public class FilmDbStorage implements FilmStorage {
                 """;
 
         try {
-            List<Film> sortFilms = jdbc.query(FIND_FILMS_WITH_MPA_RATING_SORTED_BY_LIKES_LIMITED_QUERY, mapper, actualLimit);
+            List<Film> sortFilms = jdbc.query(GET_POPULAR_FILMS_SORTED_BY_GENRE_YEAR, new PreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps) throws SQLException {
+                    ps.setObject(1, year);
+                    ps.setObject(2, year);
+                    ps.setObject(3, genreId);
+                    ps.setObject(4, genreId);
+                    ps.setInt(5, limit);
+                }
+            }, mapper);
             if (sortFilms == null || sortFilms.isEmpty()) {
                 return List.of();
             }
@@ -444,12 +452,12 @@ public class FilmDbStorage implements FilmStorage {
 
         if (by.contains("director")) {
             conditions.add("""
-                EXISTS (
-                    SELECT 1 FROM film_directors fd
-                    JOIN directors d ON fd.director_id = d.director_id
-                    WHERE fd.film_id = f.id AND LOWER(d.name) LIKE ?
-                )
-                """);
+                    EXISTS (
+                        SELECT 1 FROM film_directors fd
+                        JOIN directors d ON fd.director_id = d.director_id
+                        WHERE fd.film_id = f.id AND LOWER(d.name) LIKE ?
+                    )
+                    """);
             params.add("%" + searchQuery + "%");
         }
 
@@ -460,15 +468,15 @@ public class FilmDbStorage implements FilmStorage {
         String whereClause = "(" + String.join(" OR ", conditions) + ")";
 
         String sql = String.format("""
-            SELECT f.id, f.name, f.description, f.release_date, f.duration,
-                   f.mpa_rating_id, mr.name AS mpa_rating_name
-            FROM films f
-            LEFT OUTER JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
-            WHERE %s
-            ORDER BY (
-                SELECT COUNT(*) FROM film_like fl WHERE fl.film_id = f.id
-            ) DESC, f.id
-            """, whereClause);
+                SELECT f.id, f.name, f.description, f.release_date, f.duration,
+                       f.mpa_rating_id, mr.name AS mpa_rating_name
+                FROM films f
+                LEFT OUTER JOIN mpa_rating mr ON f.mpa_rating_id = mr.mpa_rating_id
+                WHERE %s
+                ORDER BY (
+                    SELECT COUNT(*) FROM film_like fl WHERE fl.film_id = f.id
+                ) DESC, f.id
+                """, whereClause);
 
         List<Film> films = jdbc.query(sql, mapper, params.toArray());
 
@@ -482,11 +490,7 @@ public class FilmDbStorage implements FilmStorage {
         List<Film> result = new ArrayList<>();
         for (Film film : films) {
             Set<Genre> genres = filmsGenres.getOrDefault(film.getId(), new LinkedHashSet<>());
-            Film filmWithGenres = new Film(
-                    film.getId(), film.getName(), film.getDescription(),
-                    film.getReleaseDate(), film.getDuration(), genres,
-                    film.getMpa(), film.getDirectors()
-            );
+            Film filmWithGenres = new Film(film.getId(), film.getName(), film.getDescription(), film.getReleaseDate(), film.getDuration(), genres, film.getMpa(), film.getDirectors());
             result.add(filmWithGenres);
         }
         return result;
@@ -498,16 +502,15 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         final String FIND_GENRES_FOR_FILMS_QUERY = """
-            SELECT fg.film_id, fg.genre_id, g.name AS genre_name
-            FROM film_genre fg
-            LEFT JOIN genres g ON fg.genre_id = g.genre_id
-            WHERE fg.film_id IN (%s)
-            ORDER BY fg.film_id, g.genre_id
-            """;
+                SELECT fg.film_id, fg.genre_id, g.name AS genre_name
+                FROM film_genre fg
+                LEFT JOIN genres g ON fg.genre_id = g.genre_id
+                WHERE fg.film_id IN (%s)
+                ORDER BY fg.film_id, g.genre_id
+                """;
 
         String placeholders = String.join(",", Collections.nCopies(filmIds.size(), "?"));
-        return jdbc.query(String.format(FIND_GENRES_FOR_FILMS_QUERY, placeholders),
-                new FilmsIdsWithGenresExtractor(), filmIds.toArray());
+        return jdbc.query(String.format(FIND_GENRES_FOR_FILMS_QUERY, placeholders), new FilmsIdsWithGenresExtractor(), filmIds.toArray());
     }
 
     private static class FilmWithRatingAndGenresExtractor implements ResultSetExtractor<Optional<Film>> {
