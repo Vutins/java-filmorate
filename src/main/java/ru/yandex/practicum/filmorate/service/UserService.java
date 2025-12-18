@@ -120,13 +120,13 @@ public class UserService {
     }
 
     public void addFriend(Long userId, Long friendId) {
-        ValidationTool.checkId(userId, friendId, PROGRAM_LEVEL, "Запрос на добавление друга, ID некорректен");
+        ValidationTool.checkNotNull(userId, friendId, PROGRAM_LEVEL, "Запрос на добавление друга, ID не может быть null");
 
         User user = userStorage.getUserById(userId);
         User friend = userStorage.getUserById(friendId);
 
         Set<Long> userFriendsIdsSet = userStorage.getUserFriendsIdsById(userId);
-        if (!(userFriendsIdsSet.contains(friendId))) {
+        if (!userFriendsIdsSet.contains(friendId)) {
             userStorage.addFriend(userId, friendId);
             log.info("Друг успешно добавлен");
             eventService.addEvent(userId, EventTypes.FRIEND, OperationTypes.ADD, friendId);
@@ -137,7 +137,7 @@ public class UserService {
     }
 
     public void removeFriend(Long userId, Long friendId) {
-        ValidationTool.checkId(userId, friendId, PROGRAM_LEVEL, "Друг не может быть удален ID = null");
+        ValidationTool.checkNotNull(userId, friendId, PROGRAM_LEVEL, "Друг не может быть удален, ID не может быть null");
 
         User user = userStorage.getUserById(userId);
         User friend = userStorage.getUserById(friendId);
@@ -149,7 +149,7 @@ public class UserService {
             eventService.addEvent(userId, EventTypes.FRIEND, OperationTypes.REMOVE, friendId);
             log.info("Добавлено событие (remove friend) в ленту пользователя");
         } else {
-            log.info("друг не может быть удален - отсутствует в списке друзей");
+            log.info("Друг не может быть удален - отсутствует в списке друзей");
         }
     }
 
