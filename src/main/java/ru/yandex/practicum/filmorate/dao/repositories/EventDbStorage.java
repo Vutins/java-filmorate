@@ -35,7 +35,7 @@ public class EventDbStorage {
                 LEFT OUTER JOIN event_types AS et ON et.id = e.event_type_id
                 LEFT OUTER JOIN operation_types AS ot ON ot.id = e.operation_type_id
                 WHERE e.user_id = ?
-                ORDER BY e.time_stamp
+                ORDER BY e.id
                 """;
 
         return jdbc.query(GET_USER_FEED_QUERY, mapper, userId);

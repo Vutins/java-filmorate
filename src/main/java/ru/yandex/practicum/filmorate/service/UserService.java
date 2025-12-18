@@ -36,7 +36,8 @@ public class UserService {
     public List<Event> getFeed(Long userId) {
         log.info("{}: проверка наличия user ID {} в базе", PROGRAM_LEVEL, userId);
         getUserById(userId);
-        return eventService.getFeed(userId);
+        List<Event> events = eventService.getFeed(userId);
+        return events;
     }
 
     public void delete(Long userId) {
@@ -130,7 +131,7 @@ public class UserService {
             userStorage.addFriend(userId, friendId);
             log.info("Друг успешно добавлен");
             eventService.addEvent(userId, EventTypes.FRIEND, OperationTypes.ADD, friendId);
-            log.info("Добавлено событие (add friend) в ленту пользователя");
+            log.info("{}: Добавлено событие (add friend) в ленту пользователя", PROGRAM_LEVEL);
         } else {
             log.info("Друг был добавлен ранее");
         }
@@ -147,7 +148,7 @@ public class UserService {
             userStorage.removeFriend(userId, friendId);
             log.info("Друг успешно удален");
             eventService.addEvent(userId, EventTypes.FRIEND, OperationTypes.REMOVE, friendId);
-            log.info("Добавлено событие (remove friend) в ленту пользователя");
+            log.info("{}: Добавлено событие (remove friend) в ленту пользователя", PROGRAM_LEVEL);
         } else {
             log.info("Друг не может быть удален - отсутствует в списке друзей");
         }

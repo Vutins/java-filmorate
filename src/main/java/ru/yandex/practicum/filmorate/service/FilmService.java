@@ -4,10 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.Director;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Rating;
+import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.model.enums.EventTypes;
 import ru.yandex.practicum.filmorate.model.enums.GenreValueList;
 import ru.yandex.practicum.filmorate.model.enums.OperationTypes;
@@ -18,6 +15,7 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.validation.ValidationTool;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -107,7 +105,13 @@ public class FilmService {
             }
         }
 
-        Film validFilm = new Film(film.getId(), film.getName(), film.getDescription(), film.getReleaseDate(), film.getDuration(), validGenresSet, validFilmRating, film.getDirectors());
+        // Сортируем жанры по id перед использованием
+        Set<Genre> sortedGenres = validGenresSet.stream()
+                .sorted(Comparator.comparing(Genre::getId))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        Film validFilm = new Film(film.getId(), film.getName(), film.getDescription(), film.getReleaseDate(),
+                film.getDuration(), sortedGenres, validFilmRating, film.getDirectors());
         Film filmResult = filmStorage.create(validFilm);
         validateDirectorExists(filmResult);
         addDirectorToFilm(filmResult);
@@ -152,7 +156,14 @@ public class FilmService {
         deleteDirectorsFromFilm(film);
         addDirectorToFilm(film);
 
-        Film validFilm = new Film(film.getId(), film.getName(), film.getDescription(), film.getReleaseDate(), film.getDuration(), validGenresSet, validFilmRating, film.getDirectors());
+        // Сортируем жанры по id перед использованием
+        Set<Genre> sortedGenres = validGenresSet.stream()
+                .sorted(Comparator.comparing(Genre::getId))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        Film validFilm = new Film(film.getId(), film.getName(), film.getDescription(), film.getReleaseDate(),
+                film.getDuration(), sortedGenres, validFilmRating, film.getDirectors());
+
         return filmStorage.update(validFilm);
     }
 
@@ -167,7 +178,7 @@ public class FilmService {
         filmStorage.addLike(filmId, userId);
         log.info("Лайк фильму успешно добавлен");
         eventService.addEvent(userId, EventTypes.LIKE, OperationTypes.ADD, filmId);
-        log.info("Добавлено событие (add like) в ленту пользователя");
+        log.info("{}: Добавлено событие (add like) в ленту пользователя", PROGRAM_LEVEL);
     }
 
     public void removeLike(Long filmId, Long userId) {
@@ -180,7 +191,7 @@ public class FilmService {
         filmStorage.removeLike(filmId, userId);
         log.info("Лайк фильма успешно удален");
         eventService.addEvent(userId, EventTypes.LIKE, OperationTypes.REMOVE, filmId);
-        log.info("Добавлено событие (remove like) в ленту пользователя");
+        log.info("{}: Добавлено событие (remove like) в ленту пользователя", PROGRAM_LEVEL);
     }
 
     public List<Film> getPopularFilms(int limit, Integer genreId, Integer year) {
@@ -266,9 +277,7 @@ public class FilmService {
     }
 
     private void deleteDirectorsFromFilm(Film film) {
-        if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
-            directorStorage.deleteDirectorsFromFilm(film.getId());
-        }
+        directorStorage.deleteDirectorsFromFilm(film.getId());
     }
 
     private void addProducersToFilms(List<Film> films) {
