@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.model;
 
 import lombok.*;
 
+@Builder
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
