@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.dao.repositories;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.*;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
@@ -197,7 +198,11 @@ public class FilmDbStorage implements FilmStorage {
                 VALUES (?, ?);
                 """;
         final Object[] params = {filmId, userId};
-        jdbc.update(INSERT_FILM_LIKE_QUERY, params);
+        try {
+            jdbc.update(INSERT_FILM_LIKE_QUERY, params);
+        } catch (DuplicateKeyException ignored) {
+            log.info("{}: Попытка поставить повторный like для Film с ID: {}", PROGRAM_LEVEL, filmId);
+        }
     }
 
     @Override
@@ -232,17 +237,6 @@ public class FilmDbStorage implements FilmStorage {
                 LIMIT ?
                 """;
 
-        final String FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY = """
-                SELECT f.id AS film_id, fg.genre_id, g.name AS genre_name
-                FROM films AS f
-                LEFT OUTER JOIN film_like AS fl ON f.id = fl.film_id
-                LEFT OUTER JOIN film_genre AS fg ON f.id = fg.film_id
-                LEFT OUTER JOIN genres AS g ON fg.genre_id = g.genre_id
-                GROUP BY f.id, fg.genre_id, g.name
-                ORDER BY COUNT(fl.user_id) DESC, f.id
-                LIMIT ?;
-                """;
-
         try {
             List<Film> sortFilms = jdbc.query(GET_POPULAR_FILMS_SORTED_BY_GENRE_YEAR, new PreparedStatementSetter() {
                 @Override
@@ -258,7 +252,16 @@ public class FilmDbStorage implements FilmStorage {
                 return List.of();
             }
 
-            Map<Long, Set<Genre>> filmsGenres = jdbc.query(FIND_FILMS_IDS_WITH_GENRES_SORTED_BY_LIKES_LIMITED_QUERY, new FilmDbStorage.FilmsIdsWithGenresExtractor(), actualLimit);
+            List<Long> filmsId = sortFilms.stream().filter(Objects::nonNull).map(Film::getId).toList();
+            String placeholder = String.join(",", Collections.nCopies(filmsId.size(), "?"));
+            final String FIND_GENRES_BY_FILM_IDS = String.format("""
+                SELECT fg.film_id, fg.genre_id, g.name
+                FROM film_genre fg
+                JOIN genres g ON fg.genre_id = g.genre_id
+                WHERE fg.film_id IN (%s)
+                """, placeholder);
+
+            Map<Long, Set<Genre>> filmsGenres = jdbc.query(FIND_GENRES_BY_FILM_IDS, filmsId.toArray(), new FilmDbStorage.FilmsIdsWithGenresExtractor());
 
             List<Film> films = new ArrayList<>();
             for (Film sortFilm : sortFilms) {
@@ -272,6 +275,7 @@ public class FilmDbStorage implements FilmStorage {
             return List.of();
         }
     }
+
 
     @Override
     public List<Film> getFilmsByIds(List<Long> filmIds) {
@@ -550,16 +554,29 @@ public class FilmDbStorage implements FilmStorage {
         @Override
         public Map<Long, Set<Genre>> extractData(ResultSet resultSet) throws SQLException, DataAccessException {
             Map<Long, Set<Genre>> data = new HashMap<>();
-            Genre genre;
             while (resultSet.next()) {
                 Long filmId = resultSet.getLong("film_id");
-                data.putIfAbsent(filmId, new LinkedHashSet<>());
 
-                int genreId = resultSet.getInt("genre_id");
-                String genreName = resultSet.getString("genre_name");
-                if (genreId != 0) {
-                    genre = new Genre(genreId, genreName);
-                    data.get(filmId).add(genre);
+                if (filmId != null) {
+                    Genre genre = null;
+
+                    if (resultSet.getObject("genre_id") != null) {
+                        genre = Genre.builder()
+                                .id(resultSet.getInt("genre_id"))
+                                .name(resultSet.getString("name"))
+                                .build();
+                    }
+
+                    if (!data.containsKey(filmId)) {
+                        Set<Genre> genres = new LinkedHashSet<>();
+
+                        if (genre != null) {
+                            genres.add(genre);
+                        }
+                        data.put(filmId, genres);
+                    } else if (genre != null) {
+                        data.get(filmId).add(genre);
+                    }
                 }
             }
             return data;

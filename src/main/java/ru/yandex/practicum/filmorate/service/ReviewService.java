@@ -36,7 +36,7 @@ public class ReviewService {
         log.info("Отзыв успешно создан с ID: {}", createdReview.getId());
 
         eventService.addEvent(createdReview.getUserId(), EventTypes.REVIEW, OperationTypes.ADD, createdReview.getId());
-        log.info("Добавлено событие (add review) в ленту пользователя");
+        log.info("ReviewService: Добавлено событие (add review) в ленту пользователя");
 
         return createdReview;
     }
@@ -51,7 +51,7 @@ public class ReviewService {
                 updatedReview.getId(), updatedReview.getUseful());
 
         eventService.addEvent(updatedReview.getUserId(), EventTypes.REVIEW, OperationTypes.UPDATE, updatedReview.getId());
-        log.info("Добавлено событие (update review) в ленту пользователя");
+        log.info("ReviewService: Добавлено событие (update review) в ленту пользователя");
 
         return updatedReview;
     }
@@ -66,7 +66,7 @@ public class ReviewService {
         if (deletingReview.isPresent()) {
             Review review = deletingReview.get();
             eventService.addEvent(review.getUserId(), EventTypes.REVIEW, OperationTypes.REMOVE, review.getId());
-            log.info("Добавлено событие (remove review) в ленту пользователя");
+            log.info("ReviewService: Добавлено событие (remove review) в ленту пользователя");
         }
     }
 
