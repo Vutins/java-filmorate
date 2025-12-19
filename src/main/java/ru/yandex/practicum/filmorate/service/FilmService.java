@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class FilmService {
 
     private static final String PROGRAM_LEVEL = "FilmService";
@@ -27,14 +29,6 @@ public class FilmService {
     private final UserStorage userStorage;
     private final DirectorStorage directorStorage;
     private final GenreService genreService;
-
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage, DirectorStorage directorStorage, EventService eventService, GenreService genreService) {
-        this.filmStorage = filmStorage;
-        this.userStorage = userStorage;
-        this.directorStorage = directorStorage;
-        this.eventService = eventService;
-        this.genreService = genreService;
-    }
 
     public void delete(Long filmId) {
         String message;

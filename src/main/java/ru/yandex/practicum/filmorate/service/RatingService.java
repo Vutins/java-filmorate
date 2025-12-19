@@ -1,7 +1,7 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Rating;
@@ -11,14 +11,10 @@ import java.util.*;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class RatingService {
 
     private final RatingStorage mpaRatingStorage;
-
-    @Autowired
-    public RatingService(RatingStorage mpaRatingStorage) {
-        this.mpaRatingStorage = mpaRatingStorage;
-    }
 
     public List<Rating> getAllRatings() {
         return List.copyOf(mpaRatingStorage.getAllRatings());

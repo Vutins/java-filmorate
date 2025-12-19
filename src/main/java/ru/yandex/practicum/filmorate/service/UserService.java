@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,19 +20,13 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final EventService eventService;
     private final UserStorage userStorage;
     private final FilmStorage filmStorage;
     private static final String PROGRAM_LEVEL = "UserService";
-
-    @Autowired
-    public UserService(UserStorage userStorage, FilmStorage filmStorage, EventService eventService) {
-        this.userStorage = userStorage;
-        this.filmStorage = filmStorage;
-        this.eventService = eventService;
-    }
 
     public List<Event> getFeed(Long userId) {
         log.info("{}: проверка наличия user ID {} в базе", PROGRAM_LEVEL, userId);

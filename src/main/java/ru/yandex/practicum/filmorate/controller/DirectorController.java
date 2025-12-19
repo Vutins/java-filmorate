@@ -14,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/directors")
 public class DirectorController {
+
     private final DirectorService directorService;
 
     @Autowired
@@ -32,7 +33,7 @@ public class DirectorController {
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    Director getById(@PathVariable("id") Long id) {
+    public Director getById(@PathVariable("id") Long id) {
         log.info("Получен Http-запрос на возврат режиссёра по ID");
         Director director = directorService.getById(id);
         log.info("Успешно обработан Http-запрос на возврат режиссёра по ID");
@@ -41,7 +42,7 @@ public class DirectorController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    Director create(@Valid @RequestBody Director director) {
+    public Director create(@Valid @RequestBody Director director) {
         log.info("Получен Http-запрос на создание режиссёра {}", director);
         Director result = directorService.create(director);
         log.info("Успешно обработан Http-запрос на создание режиссёра {}", director);
@@ -49,7 +50,7 @@ public class DirectorController {
     }
 
     @PutMapping
-    Director update(@Valid @RequestBody Director director) {
+    public Director update(@Valid @RequestBody Director director) {
         log.info("Получен Http-запрос на обновление режиссёра {}", director);
         Director result = directorService.update(director);
         log.info("Успешно обработан Http-запрос на обновление режиссёра {}", director);
@@ -58,7 +59,7 @@ public class DirectorController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void delete(@PathVariable("id") Long id) {
+    public void delete(@PathVariable("id") Long id) {
         log.info("Получен Http-запрос на удаление режиссёра по ID");
         directorService.delete(id);
         log.info("Успешно обработан Http-запрос на удаление режиссёра по ID");

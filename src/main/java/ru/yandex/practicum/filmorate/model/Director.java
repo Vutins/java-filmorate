@@ -10,8 +10,9 @@ import lombok.*;
 @NoArgsConstructor //может не понадобится
 @EqualsAndHashCode(of = {"id"})
 public class Director {
-    public Long id;
+
+    private Long id;
     @NotNull(message = "Имя режиссёра обязательно к заполнению")
     @NotBlank(message = "Имя режиссёра не может быть пустым")
-    public String name;
+    private String name;
 }

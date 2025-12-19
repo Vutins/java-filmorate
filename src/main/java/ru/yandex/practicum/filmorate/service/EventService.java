@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,13 +13,10 @@ import java.util.List;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class EventService {
 
     private final EventDbStorage eventsDbStorage;
-
-    public EventService(EventDbStorage eventsDbStorage) {
-        this.eventsDbStorage = eventsDbStorage;
-    }
 
     @Transactional
     public List<Event> getFeed(Long userId) {
