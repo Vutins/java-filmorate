@@ -39,12 +39,21 @@ public class FilmService {
             throw new ValidationException(message);
         }
 
-        if (!filmStorage.delete(filmId)) {
+        try {
+            filmStorage.getFilmById(filmId);
+        } catch (NotFoundException e) {
             message = String.format("%s : Фильм с ID = %s не найден в приложении", PROGRAM_LEVEL, filmId);
             log.warn(message);
             throw new NotFoundException(message);
         }
 
+        boolean isDeleted = filmStorage.delete(filmId);
+
+        if (!isDeleted) {
+            message = String.format("%s : Не удалось удалить фильм с ID = %s", PROGRAM_LEVEL, filmId);
+            log.error(message);
+            throw new ValidationException(message);
+        }
         message = String.format("%s : Фильм ID %s успешно удален", PROGRAM_LEVEL, filmId);
         log.info(message);
     }
