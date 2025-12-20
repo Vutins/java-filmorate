@@ -3,7 +3,8 @@ package ru.yandex.practicum.filmorate.dao.repositories;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.*;
+import org.springframework.jdbc.core.JdbcOperations;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.InternalServerException;
@@ -13,7 +14,9 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Repository
@@ -26,6 +29,16 @@ public class UserDbStorage implements UserStorage {
     public UserDbStorage(final JdbcOperations jdbc, final RowMapper<User> mapper) {
         this.jdbc = jdbc;
         this.mapper = mapper;
+    }
+
+    @Override
+    public boolean delete(Long userId) {
+        final String DELETE_USER_QUERY = """
+                DELETE
+                FROM users
+                WHERE id = ?;
+                """;
+        return jdbc.update(DELETE_USER_QUERY, userId) > 0;
     }
 
     public User getUserById(Long id) {
@@ -51,9 +64,9 @@ public class UserDbStorage implements UserStorage {
     @Override
     public User create(User user) {
         final String INSERT_USER_QUERY = """
-            INSERT INTO users (name, email, login, birthday)
-            VALUES (?, ?, ?, ?);
-            """;
+                INSERT INTO users (name, email, login, birthday)
+                VALUES (?, ?, ?, ?);
+                """;
         final Object[] params = {
                 user.getName(),
                 user.getEmail(),
@@ -181,5 +194,30 @@ public class UserDbStorage implements UserStorage {
                 """;
 
         return Set.copyOf(jdbc.queryForList(FIND_USER_FRIENDS_IDS_BY_ID_QUERY, Long.class, userId));
+    }
+
+    public boolean validUserId(Long userId) {
+        final String FIND_USER_BY_ID = """
+                SELECT id,
+                    name,
+                    email,
+                    login,
+                    birthday
+                FROM users
+                WHERE id = ?;
+                """;
+        List<User> user = jdbc.query(FIND_USER_BY_ID, mapper, userId);
+        return !user.isEmpty();
+    }
+
+    @Override
+    public List<Long> getLikedFilmsByUserId(Long userId) {
+        final String FIND_LIKED_FILMS_QUERY = """
+                SELECT film_id
+                FROM film_like
+                WHERE user_id = ?
+                """;
+
+        return jdbc.queryForList(FIND_LIKED_FILMS_QUERY, Long.class, userId);
     }
 }

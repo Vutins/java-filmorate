@@ -5,9 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -20,6 +22,13 @@ public class FilmController {
     @Autowired
     public FilmController(FilmService filmService) {
         this.filmService = filmService;
+    }
+
+    @DeleteMapping("/{filmId}")
+    @ResponseStatus(HttpStatus.OK)
+    public void delete(@PathVariable Long filmId) {
+        log.info("Запрос на удаление фильма ID {}", filmId);
+        filmService.delete(filmId);
     }
 
     @GetMapping
@@ -38,9 +47,9 @@ public class FilmController {
 
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("/popular")
-    public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+    public List<Film> getPopularFilms(@RequestParam(value = "count", defaultValue = "10") int count, @RequestParam(value = "genreId", required = false) Integer genreId, @RequestParam(value = "year", required = false) Integer year) {
         log.info("Запрос на получение списка n-лучших фильмов по кол-ву лайков");
-        return filmService.getPopularFilms(count);
+        return filmService.getPopularFilms(count, genreId, year);
     }
 
     @ResponseStatus(HttpStatus.OK)
@@ -69,5 +78,31 @@ public class FilmController {
     public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
         log.info("Запрос на удаление лайка у фильма по ID пользователя");
         filmService.removeLike(id, userId);
+    }
+
+    @GetMapping("/director/{directorId}")
+    public List<Film> getFilmsByDirector(@PathVariable Long directorId, @RequestParam(required = false, defaultValue = "likes") String sortBy) {
+        if (!sortBy.equals("year") && !sortBy.equals("likes")) {
+            throw new ValidationException("должно быть либо 'year' либо 'likes'");
+        }
+
+        return filmService.getFilmsByDirector(directorId, sortBy);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/common")
+    public List<Film> getCommonFilms(@RequestParam Long userId, @RequestParam Long friendId) {
+        log.info("запрос на получения списка общих фильмов");
+        return filmService.getCommonFilms(userId, friendId);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/search")
+    public List<Film> searchFilms(@RequestParam String query, @RequestParam(defaultValue = "title,director") String by) {
+        log.info("Запрос на поиск фильмов по запросу: '{}', по полям: {}", query, by);
+
+        List<String> searchFields = Arrays.stream(by.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+
+        return filmService.searchFilms(query, searchFields);
     }
 }

@@ -1,10 +1,16 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.Event;
+import ru.yandex.practicum.filmorate.model.enums.EventTypes;
+import ru.yandex.practicum.filmorate.model.enums.OperationTypes;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.validation.ValidationTool;
 
@@ -13,14 +19,45 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
+    private final EventService eventService;
     private final UserStorage userStorage;
+    private final FilmStorage filmStorage;
     private static final String PROGRAM_LEVEL = "UserService";
 
-    @Autowired
-    public UserService(UserStorage userStorage) {
-        this.userStorage = userStorage;
+    public List<Event> getFeed(Long userId) {
+        log.info("{}: проверка наличия user ID {} в базе", PROGRAM_LEVEL, userId);
+        getUserById(userId);
+        List<Event> events = eventService.getFeed(userId);
+        return events;
+    }
+
+    public void delete(Long userId) {
+        String message;
+
+        if (userId == null || userId < 1) {
+            message = String.format(
+                    "%s : Попытка удалить user по ID = %s",
+                    PROGRAM_LEVEL, String.valueOf(userId)
+            );
+            log.warn(message);
+            throw new ValidationException(message);
+        }
+
+        if (userStorage.delete(userId) == false) {
+            message = String.format(
+                    "%s : User с ID = %s не найден в приложении",
+                    PROGRAM_LEVEL, String.valueOf(userId));
+            log.warn(message);
+            throw new NotFoundException(message);
+        }
+
+        message = String.format(
+                "%s : User ID %s успешно удален",
+                PROGRAM_LEVEL, String.valueOf(userId));
+        log.info(message);
     }
 
     public List<User> getAllUsers() {
@@ -78,22 +115,24 @@ public class UserService {
     }
 
     public void addFriend(Long userId, Long friendId) {
-        ValidationTool.checkId(userId, friendId, PROGRAM_LEVEL, "Запрос на добавление друга, ID некорректен");
+        ValidationTool.checkNotNull(userId, friendId, PROGRAM_LEVEL, "Запрос на добавление друга, ID не может быть null");
 
         User user = userStorage.getUserById(userId);
         User friend = userStorage.getUserById(friendId);
 
         Set<Long> userFriendsIdsSet = userStorage.getUserFriendsIdsById(userId);
-        if (!(userFriendsIdsSet.contains(friendId))) {
+        if (!userFriendsIdsSet.contains(friendId)) {
             userStorage.addFriend(userId, friendId);
             log.info("Друг успешно добавлен");
+            eventService.addEvent(userId, EventTypes.FRIEND, OperationTypes.ADD, friendId);
+            log.info("{}: Добавлено событие (add friend) в ленту пользователя", PROGRAM_LEVEL);
         } else {
             log.info("Друг был добавлен ранее");
         }
     }
 
     public void removeFriend(Long userId, Long friendId) {
-        ValidationTool.checkId(userId, friendId, PROGRAM_LEVEL, "Друг не может быть удален ID = null");
+        ValidationTool.checkNotNull(userId, friendId, PROGRAM_LEVEL, "Друг не может быть удален, ID не может быть null");
 
         User user = userStorage.getUserById(userId);
         User friend = userStorage.getUserById(friendId);
@@ -102,8 +141,10 @@ public class UserService {
         if (userFriendsIds.contains(friendId)) {
             userStorage.removeFriend(userId, friendId);
             log.info("Друг успешно удален");
+            eventService.addEvent(userId, EventTypes.FRIEND, OperationTypes.REMOVE, friendId);
+            log.info("{}: Добавлено событие (remove friend) в ленту пользователя", PROGRAM_LEVEL);
         } else {
-            log.info("друг не может быть удален - отсутствует в списке друзей");
+            log.info("Друг не может быть удален - отсутствует в списке друзей");
         }
     }
 
@@ -139,5 +180,84 @@ public class UserService {
         List<User> commonFriends = userStorage.getUsersByIdSet(resultOfIntersection);
         log.info("Список всех общих друзей пользователей успешно создан");
         return List.copyOf(commonFriends);
+    }
+
+    public boolean validUserId(Long userId) {
+        return userStorage.validUserId(userId);
+    }
+
+    public List<Film> getRecommendations(Long userId) {
+        ValidationTool.checkId(userId, PROGRAM_LEVEL, "Рекомендации не могут быть получены по некорректному ID");
+
+        // Получаем пользователя для проверки его существования
+        userStorage.getUserById(userId);
+
+        // Получаем лайки текущего пользователя
+        List<Long> userLikedFilms = userStorage.getLikedFilmsByUserId(userId);
+
+        if (userLikedFilms.isEmpty()) {
+            log.info("У пользователя {} нет лайков, возвращаем пустые рекомендации", userId);
+            return List.of();
+        }
+
+        // Получаем всех пользователей
+        List<User> allUsers = userStorage.getAllUsers();
+
+        // Ищем пользователя с максимальным пересечением лайков
+        Long mostSimilarUserId = findMostSimilarUser(userId, userLikedFilms, allUsers);
+
+        if (mostSimilarUserId == null) {
+            log.info("Для пользователя {} не найден пользователь с похожими вкусами", userId);
+            return List.of();
+        }
+
+        // Получаем лайки похожего пользователя
+        List<Long> similarUserLikedFilms = userStorage.getLikedFilmsByUserId(mostSimilarUserId);
+
+        // Находим фильмы, которые понравились похожему пользователю, но не текущему
+        List<Long> recommendedFilmIds = similarUserLikedFilms.stream()
+                .filter(filmId -> !userLikedFilms.contains(filmId))
+                .collect(Collectors.toList());
+
+        if (recommendedFilmIds.isEmpty()) {
+            log.info("Для пользователя {} нет рекомендаций", userId);
+            return List.of();
+        }
+
+        // Получаем объекты фильмов
+        List<Film> recommendedFilms = filmStorage.getFilmsByIds(recommendedFilmIds);
+
+        log.info("Для пользователя {} найдено {} рекомендаций", userId, recommendedFilms.size());
+        return recommendedFilms;
+    }
+
+    private Long findMostSimilarUser(Long userId, List<Long> userLikedFilms, List<User> allUsers) {
+        Long mostSimilarUserId = null;
+        int maxCommonLikes = 0;
+
+        Set<Long> userLikedSet = new HashSet<>(userLikedFilms);
+
+        for (User otherUser : allUsers) {
+            if (otherUser.getId().equals(userId)) {
+                continue; // Пропускаем текущего пользователя
+            }
+
+            List<Long> otherUserLikedFilms = userStorage.getLikedFilmsByUserId(otherUser.getId());
+            if (otherUserLikedFilms.isEmpty()) {
+                continue;
+            }
+
+            Set<Long> otherUserLikedSet = new HashSet<>(otherUserLikedFilms);
+
+            // Находим пересечение лайков
+            Set<Long> intersection = new HashSet<>(userLikedSet);
+            intersection.retainAll(otherUserLikedSet);
+
+            if (intersection.size() > maxCommonLikes) {
+                maxCommonLikes = intersection.size();
+                mostSimilarUserId = otherUser.getId();
+            }
+        }
+        return mostSimilarUserId;
     }
 }

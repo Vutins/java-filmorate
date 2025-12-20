@@ -29,13 +29,19 @@ public final class ValidationTool {
     }
 
     public static void checkId(Long id, String level, String description) {
-        if (id == null  || id < 1L) {
+        if (id == null || id < 1L) {
             throw new ValidationException("[" + level + "]: " + description);
         }
     }
 
     public static void checkId(Long id1, Long id2, String level, String description) {
-        if (id1 == null  || id2 == null || id1 < 1L || id2 < 1L) {
+        if (id1 == null || id2 == null || id1 < 1L || id2 < 1L) {
+            throw new ValidationException("[" + level + "]: " + description);
+        }
+    }
+
+    public static void checkNotNull(Long id1, Long id2, String level, String description) {
+        if (id1 == null || id2 == null) {
             throw new ValidationException("[" + level + "]: " + description);
         }
     }
