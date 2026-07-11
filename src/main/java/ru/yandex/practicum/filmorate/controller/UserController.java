@@ -69,7 +69,7 @@ public class UserController {
     @PostMapping
     @ResponseStatus(HttpStatus.OK)
     public User create(@Valid @RequestBody User user) {
-        log.info("Запрос на добавление пользователя в приложение");
+        log.info("Запрос на создание пользователя");
         return userService.create(user);
     }
 
